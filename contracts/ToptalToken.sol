@@ -42,7 +42,7 @@ contract ToptalToken is ERC20 {
     require(_to != msg.sender,
             "to and msg.sender are the same");
     require(_value <= balances[msg.sender],
-            toAsciiString(msg.sender)); //"Insufficient funds");
+            "Insufficient funds");
 
     // SafeMath.sub will throw if there is not enough balance.
     balances[msg.sender] = balances[msg.sender].sub(_value);
