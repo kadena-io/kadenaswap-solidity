@@ -107,8 +107,10 @@ Compiling your contracts...
 
 ```
 NOTE: `compile` will compile all the solidity code in the /contracts directory.
+
 NOTE: `migrate` will deploy all the smart contracts in /migrations to the local node
        `truffle develop` spins up.
+
 NOTE:`test` will run all the tests in /test directory.
 
 More ways to interact with the smart contracts via Truffle can be found here:
