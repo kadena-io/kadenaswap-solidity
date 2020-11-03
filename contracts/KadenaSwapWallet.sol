@@ -3,16 +3,6 @@ pragma solidity ^0.5.16;
 import './SafeMath.sol';
 import "./ERC20.sol";
 
-/* TODO:
-*  - add sendTokens function
-*  - add lockTokens and lockETH functions
-*  - add function for adding to the amountLocked so far
-*    and amount released so far.
-* - research whether eth functions return amount as wei?
-* - research best practice for sending ETH.
-* - Add docs
-*/
-
 contract KadenaSwapWallet {
     using SafeMath for uint256;
 

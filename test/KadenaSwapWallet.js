@@ -17,15 +17,15 @@ contract ('KadenaSwapWallet', (accounts) => {
   it("Owner can withdraw the ETH funds with valid proof", async () => {
       let validProof = "someDummyValidProof";
 
-      // create the wallet contract
+      // Create the wallet contract
       let kadenaSwapWallet = await KadenaSwapWallet.new(creator, owner, "someChainwebPublicKey");
 
-      // lock up eth in the contract
+      // Lock up eth in the contract
       await kadenaSwapWallet.lockETH({value: ethToSend, from: creator});
       assert(ethToSend == await web3.eth.getBalance(kadenaSwapWallet.address),
             "ETH owned by the wallet is not expected amount");
 
-      // release the eth back to owner with mock proof
+      // Release the eth back to owner with mock proof
       let balanceBefore = await web3.eth.getBalance(owner);
       await kadenaSwapWallet.releaseETH(validProof, ethToSend, {from: owner});
       let balanceAfter = await web3.eth.getBalance(owner);
@@ -36,32 +36,32 @@ contract ('KadenaSwapWallet', (accounts) => {
  	it("Owner can withdraw the ToptalToken with valid proof", async () => {
         let validProof = "someDummyValidProof";
 
-        // create the wallet contract
+        // Create the wallet contract
         let kadenaSwapWallet = await KadenaSwapWallet.new(
           creator, owner, "someChainwebPublicKey");
 
-        // create ToptalToken contract
+        // Create ToptalToken contract
         let toptalToken = await ToptalToken.new({from: creator});
 
-        //check contract initiated well and has 1M of tokens
+        // Check contract initiated well and has 1M of tokens
         assert(1000000000000 == await toptalToken.balanceOf(creator),
               "creator does not have expected Toptal token balance");
 
-        // lock up some Toptal tokens
+        // Lock up some Toptal tokens
         let amountOfTokens = 1000000000;
         await toptalToken.approve(kadenaSwapWallet.address, amountOfTokens);
         await kadenaSwapWallet.lockTokens(
           toptalToken.address, amountOfTokens, {from: creator});
 
-        // check that kadenaSwapWallet has ToptalTokens
+        // Check that kadenaSwapWallet has ToptalTokens
         assert(amountOfTokens == await toptalToken.balanceOf(kadenaSwapWallet.address),
               "Toptal tokens owned by wallet is not expected amount");
 
-        // now release tokens
+        // Now release tokens
         await kadenaSwapWallet.releaseTokens(
           toptalToken.address, validProof, amountOfTokens, {from: owner});
 
-        // check the balance is correct
+        // Check the balance is correct
         let balance = await toptalToken.balanceOf(owner);
         assert(balance.toNumber() == amountOfTokens,
               "Toptal tokens released to wallet owner is not expected amount");
@@ -70,11 +70,11 @@ contract ('KadenaSwapWallet', (accounts) => {
     it("Nobody can release funds with invalid proof", async () => {
         let invalidProof = "invalidProof";
 
-        // create the contract
+        // Create the contract
         let kadenaSwapWallet = await KadenaSwapWallet.new(
           creator, owner, "someChainwebPublicKey");
 
-        // lock up eth in the contract
+        // Lock up eth in the contract
         await kadenaSwapWallet.lockETH({value: ethToSend, from: creator});
         assert(ethToSend == await web3.eth.getBalance(kadenaSwapWallet.address),
               "ETH owned by the wallet is not expected amount");
@@ -94,7 +94,7 @@ contract ('KadenaSwapWallet', (accounts) => {
             assert(false, "releaseETH: other: Expected error not received");
         } catch (error) {} // expected
 
-        // contract balance is intact
+        // Contract balance is intact
         assert(ethToSend == await web3.eth.getBalance(kadenaSwapWallet.address),
               "Contract balance is not expected amount");
     });
@@ -102,11 +102,11 @@ contract ('KadenaSwapWallet', (accounts) => {
     it("Nobody other than the owner can withdraw funds with valid proof", async () => {
         let validProof = "someDummyValidProof";
 
-        // create the contract
+        // Create the contract
         let kadenaSwapWallet = await KadenaSwapWallet.new(
           creator, owner, "someChainwebPublicKey");
 
-        // lock up eth in the contract
+        // Lock up eth in the contract
         await kadenaSwapWallet.lockETH({value: ethToSend, from: creator});
         assert(ethToSend == await web3.eth.getBalance(kadenaSwapWallet.address),
               "ETH owned by the wallet is expected amount");
@@ -123,11 +123,11 @@ contract ('KadenaSwapWallet', (accounts) => {
           assert(false, "releaseETH: other: Expected error not received");
         } catch (error) {} //expected
 
-        // contract balance is intact
+        // Contract balance is intact
         assert(ethToSend == await web3.eth.getBalance(kadenaSwapWallet.address),
               "Contract balance is not expected amount");
 
-        // owner balance is intact
+        // Owner balance is intact
         assert(balanceBefore == await web3.eth.getBalance(owner),
               "Owner balance is not expected amount");
     });
@@ -139,7 +139,7 @@ contract ('KadenaSwapWallet', (accounts) => {
         let kadenaSwapWallet = await KadenaSwapWallet.new(
           creator, owner, chainwebOwner);
 
-        // create ToptalToken contract
+        // Create ToptalToken contract
         let toptalToken = await ToptalToken.new({from: creator});
 
         // Lock up ether to the wallet
