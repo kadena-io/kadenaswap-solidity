@@ -3,7 +3,7 @@ pragma solidity ^0.5.16;
 import './SafeMath.sol';
 import "./ERC20.sol";
 
-contract KadenaSwapWallet {
+contract KadenaBridgeWallet {
     using SafeMath for uint256;
 
     address public creator;
@@ -23,7 +23,7 @@ contract KadenaSwapWallet {
 
 
     /**
-    * @dev Create a new Kadena Swap wallet.
+    * @dev Create a new Kadena Bridge wallet.
     * @param _creator The Ethereum address that created the account.
     * @param _owner The Ethereum address that owns any released amounts.
     * @param _chainwebOwner String representation of the public key that owns
@@ -170,26 +170,26 @@ contract KadenaSwapWallet {
     * TODO: Which three parameters in events to index?
     */
     event LockedETH(
-      address kadenaSwapContract,
+      address kadenaBridgeContract,
       uint256 indexed weiAmount,
       address indexed ethereumOwner,
       string indexed releasedTo
     );
     event LockedToken(
-      address kadenaSwapContract,
+      address kadenaBridgeContract,
       address indexed tokenContract,
       uint256 amount,
       address indexed ethereumOwner,
       string indexed releasedTo
     );
     event ReleasedETH(
-      address indexed kadenaSwapContract,
+      address indexed kadenaBridgeContract,
       address indexed ethereumOwner,
       uint256 weiAmount,
       string indexed releasedFrom
     );
     event ReleasedTokens(
-      address kadenaSwapContract,
+      address kadenaBridgeContract,
       address indexed tokenContract,
       address indexed ethereumOwner,
       uint256 amount,

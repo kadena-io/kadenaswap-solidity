@@ -1,4 +1,4 @@
-const KadenaSwapWallet = artifacts.require("./KadenaSwapWallet.sol");
+const KadenaBridgeWallet = artifacts.require("./KadenaBridgeWallet.sol");
 const ToptalToken = artifacts.require("./ToptalToken.sol");
 
 let ethToSend = web3.utils.toWei("1", "ether");
@@ -6,7 +6,7 @@ let someGas = web3.utils.toWei("0.01", "ether");
 let creator;
 let owner;
 
-contract ('KadenaSwapWallet', (accounts) => {
+contract ('KadenaBridgeWallet', (accounts) => {
 
     before(async () => {
         creator = accounts[0];
@@ -14,20 +14,33 @@ contract ('KadenaSwapWallet', (accounts) => {
         other = accounts[2];
 	});
 
+  it("Cannot send ETH to bridge wallet via /send", async () => {
+      let validProof = "someDummyValidProof";
+
+      // Create the wallet contract
+      let kadenaBridgeWallet = await KadenaBridgeWallet.new(creator, owner, "someChainwebPublicKey");
+
+      // Attempt to send eth to the contract
+      try {
+        await kadenaBridgeWallet.send(ethToSend, {from: creator});
+        assert(false, "Expected error not received");
+      } catch (error) {} //expected
+  });
+
   it("Owner can withdraw the ETH funds with valid proof", async () => {
       let validProof = "someDummyValidProof";
 
       // Create the wallet contract
-      let kadenaSwapWallet = await KadenaSwapWallet.new(creator, owner, "someChainwebPublicKey");
+      let kadenaBridgeWallet = await KadenaBridgeWallet.new(creator, owner, "someChainwebPublicKey");
 
       // Lock up eth in the contract
-      await kadenaSwapWallet.lockETH({value: ethToSend, from: creator});
-      assert(ethToSend == await web3.eth.getBalance(kadenaSwapWallet.address),
+      await kadenaBridgeWallet.lockETH({value: ethToSend, from: creator});
+      assert(ethToSend == await web3.eth.getBalance(kadenaBridgeWallet.address),
             "ETH owned by the wallet is not expected amount");
 
       // Release the eth back to owner with mock proof
       let balanceBefore = await web3.eth.getBalance(owner);
-      await kadenaSwapWallet.releaseETH(validProof, ethToSend, {from: owner});
+      await kadenaBridgeWallet.releaseETH(validProof, ethToSend, {from: owner});
       let balanceAfter = await web3.eth.getBalance(owner);
       assert(balanceAfter - balanceBefore >= ethToSend - someGas,
             "ETH released to wallet owner is not expected amount");
@@ -37,7 +50,7 @@ contract ('KadenaSwapWallet', (accounts) => {
         let validProof = "someDummyValidProof";
 
         // Create the wallet contract
-        let kadenaSwapWallet = await KadenaSwapWallet.new(
+        let kadenaBridgeWallet = await KadenaBridgeWallet.new(
           creator, owner, "someChainwebPublicKey");
 
         // Create ToptalToken contract
@@ -49,16 +62,16 @@ contract ('KadenaSwapWallet', (accounts) => {
 
         // Lock up some Toptal tokens
         let amountOfTokens = 1000000000;
-        await toptalToken.approve(kadenaSwapWallet.address, amountOfTokens);
-        await kadenaSwapWallet.lockTokens(
+        await toptalToken.approve(kadenaBridgeWallet.address, amountOfTokens);
+        await kadenaBridgeWallet.lockTokens(
           toptalToken.address, amountOfTokens, {from: creator});
 
-        // Check that kadenaSwapWallet has ToptalTokens
-        assert(amountOfTokens == await toptalToken.balanceOf(kadenaSwapWallet.address),
+        // Check that kadenaBridgeWallet has ToptalTokens
+        assert(amountOfTokens == await toptalToken.balanceOf(kadenaBridgeWallet.address),
               "Toptal tokens owned by wallet is not expected amount");
 
         // Now release tokens
-        await kadenaSwapWallet.releaseTokens(
+        await kadenaBridgeWallet.releaseTokens(
           toptalToken.address, validProof, amountOfTokens, {from: owner});
 
         // Check the balance is correct
@@ -71,31 +84,31 @@ contract ('KadenaSwapWallet', (accounts) => {
         let invalidProof = "invalidProof";
 
         // Create the contract
-        let kadenaSwapWallet = await KadenaSwapWallet.new(
+        let kadenaBridgeWallet = await KadenaBridgeWallet.new(
           creator, owner, "someChainwebPublicKey");
 
         // Lock up eth in the contract
-        await kadenaSwapWallet.lockETH({value: ethToSend, from: creator});
-        assert(ethToSend == await web3.eth.getBalance(kadenaSwapWallet.address),
+        await kadenaBridgeWallet.lockETH({value: ethToSend, from: creator});
+        assert(ethToSend == await web3.eth.getBalance(kadenaBridgeWallet.address),
               "ETH owned by the wallet is not expected amount");
 
         try {
-            await kadenaSwapWallet.releaseETH(invalidProof, ethToSend, {from: owner});
+            await kadenaBridgeWallet.releaseETH(invalidProof, ethToSend, {from: owner});
             assert(false, "releaseETH: owner: Expected error not received");
         } catch (error) {} // expected
 
         try {
-            await kadenaSwapWallet.releaseETH(invalidProof, ethToSend, {from: creator});
+            await kadenaBridgeWallet.releaseETH(invalidProof, ethToSend, {from: creator});
             assert(false, "releaseETH: creator: Expected error not received");
         } catch (error) {} // expected
 
         try {
-            await kadenaSwapWallet.releaseETH(invalidProof, ethToSend, {from: other});
+            await kadenaBridgeWallet.releaseETH(invalidProof, ethToSend, {from: other});
             assert(false, "releaseETH: other: Expected error not received");
         } catch (error) {} // expected
 
         // Contract balance is intact
-        assert(ethToSend == await web3.eth.getBalance(kadenaSwapWallet.address),
+        assert(ethToSend == await web3.eth.getBalance(kadenaBridgeWallet.address),
               "Contract balance is not expected amount");
     });
 
@@ -103,28 +116,28 @@ contract ('KadenaSwapWallet', (accounts) => {
         let validProof = "someDummyValidProof";
 
         // Create the contract
-        let kadenaSwapWallet = await KadenaSwapWallet.new(
+        let kadenaBridgeWallet = await KadenaBridgeWallet.new(
           creator, owner, "someChainwebPublicKey");
 
         // Lock up eth in the contract
-        await kadenaSwapWallet.lockETH({value: ethToSend, from: creator});
-        assert(ethToSend == await web3.eth.getBalance(kadenaSwapWallet.address),
+        await kadenaBridgeWallet.lockETH({value: ethToSend, from: creator});
+        assert(ethToSend == await web3.eth.getBalance(kadenaBridgeWallet.address),
               "ETH owned by the wallet is expected amount");
 
         let balanceBefore = await web3.eth.getBalance(owner);
 
         try {
-          await kadenaSwapWallet.releaseETH(validProof, ethToSend, {from: creator})
+          await kadenaBridgeWallet.releaseETH(validProof, ethToSend, {from: creator})
           assert(false, "releaseETH: creator: Expected error not received");
         } catch (error) {} //expected
 
         try {
-          await kadenaSwapWallet.releaseETH(validProof, ethToSend, {from: other})
+          await kadenaBridgeWallet.releaseETH(validProof, ethToSend, {from: other})
           assert(false, "releaseETH: other: Expected error not received");
         } catch (error) {} //expected
 
         // Contract balance is intact
-        assert(ethToSend == await web3.eth.getBalance(kadenaSwapWallet.address),
+        assert(ethToSend == await web3.eth.getBalance(kadenaBridgeWallet.address),
               "Contract balance is not expected amount");
 
         // Owner balance is intact
@@ -135,25 +148,25 @@ contract ('KadenaSwapWallet', (accounts) => {
     it("Allow getting info about the wallet", async () => {
         let chainwebOwner = "someChainwebPublicKey";
 
-        // Create new KadenaSwapWallet
-        let kadenaSwapWallet = await KadenaSwapWallet.new(
+        // Create new KadenaBridgeWallet
+        let kadenaBridgeWallet = await KadenaBridgeWallet.new(
           creator, owner, chainwebOwner);
 
         // Create ToptalToken contract
         let toptalToken = await ToptalToken.new({from: creator});
 
         // Lock up ether to the wallet
-        await kadenaSwapWallet.lockETH({value: ethToSend, from: creator});
+        await kadenaBridgeWallet.lockETH({value: ethToSend, from: creator});
 
         // Lock up Toptal tokens to the wallet
         let amountOfTokens = 1000000000;
-        await toptalToken.approve(kadenaSwapWallet.address, amountOfTokens);
-        await kadenaSwapWallet.lockTokens(
+        await toptalToken.approve(kadenaBridgeWallet.address, amountOfTokens);
+        await kadenaBridgeWallet.lockTokens(
           toptalToken.address, amountOfTokens, {from: creator});
 
         // Get info about the wallet.
-        let infoETH = await kadenaSwapWallet.infoETH();
-        let infoToken = await kadenaSwapWallet.infoToken(toptalToken.address);
+        let infoETH = await kadenaBridgeWallet.infoETH();
+        let infoToken = await kadenaBridgeWallet.infoToken(toptalToken.address);
 
         // Compare result with expected values.
         assert(infoETH[0] == creator);

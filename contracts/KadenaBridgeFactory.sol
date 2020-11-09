@@ -1,8 +1,8 @@
 pragma solidity ^0.5.16;
 
-import "./KadenaSwapWallet.sol";
+import "./KadenaBridgeWallet.sol";
 
-contract KadenaSwapFactory {
+contract KadenaBridgeFactory {
 
     mapping(address => address[]) wallets;
 
@@ -16,17 +16,17 @@ contract KadenaSwapFactory {
     }
 
     /**
-    * @dev Create a new Kadena Swap wallet and map wallets to their creators
+    * @dev Create a new Kadena Bridge wallet and map wallets to their creators
     *      and owners.
     * @param _owner The Ethereum address that owns any released amounts.
     * @param _chainwebOwner String representation of the public key that owns
     *                       the locked amounts in Chainweb.
     */
-    function newKadenaSwapWallet(
+    function newKadenaBridgeWallet(
         address _owner,
         string memory _chainwebOwner
     ) public returns(address) {
-        KadenaSwapWallet wallet = new KadenaSwapWallet(
+        KadenaBridgeWallet wallet = new KadenaBridgeWallet(
           msg.sender,
           _owner,
           _chainwebOwner
@@ -36,7 +36,7 @@ contract KadenaSwapFactory {
         if (msg.sender != _owner) {
             wallets[_owner].push(walletAddr);
         }
-        emit CreatedKadenaSwapWallet(
+        emit CreatedKadenaBridgeWallet(
           walletAddr,
           msg.sender,
           _owner,
@@ -52,7 +52,7 @@ contract KadenaSwapFactory {
         revert();
     }
 
-    event CreatedKadenaSwapWallet(
+    event CreatedKadenaBridgeWallet(
       address wallet,
       address creator,
       address indexed owner,
