@@ -44,7 +44,7 @@ contract KadenaBridgeWallet {
     * @dev Only allows receiving eth through `lockETH` function.
     */
     function() external payable {
-        revert();
+        revert("Use `lockETH` to send ether to contract");
     }
 
 
@@ -195,4 +195,62 @@ contract KadenaBridgeWallet {
       uint256 amount,
       string indexed releasedFrom
     );
+
+
+    /** The original proof object is structured as follows:
+    * |-- 4 bytes (a) --||-- 8 bytes (b) --||-- (c) .. --|
+    *  (a): The first 4 bytes encodes the number of proof steps
+    *       as a big endian value.
+    *  (b): The next 8 bytes encodes the index of the proof subject in
+    *       the input order as a big endian value.
+    *  (c): After the first 12 bytes, the rest of the bytes are the
+    *       proof path, composed of a series of proof steps. Each step is
+    *       a merkle hash of format:
+    *       |--1 byte (i) --||--`hashSize` bytes (ii)--|
+    *       (i): '0x00' (representing Left) and '0x01' (representing Right).
+    *       (ii): The hash needed to compute the current proof path.
+    */
+
+    /**
+    * @dev Execute an inclusion proof. The result of the execution is a
+    *      Merkle root that must be compared to the trusted root of the
+    *      Merkle tree.
+    * @param subjectMerkleHash The merkle hash of the subject for
+    *                          which inclusion is proven.
+    * @param stepCount The number of steps in the proof path.
+    * @param proofPathHashes The proof object is parsed to create this list
+    *                        of merkle hashes corresponding to proof path steps.
+    * @param proofPathSides List of sides as bytes1 that indicate where to append
+    *                       the corresponding merkle hash in `proofPathHashes`
+    *                       to the previously calculated hash to determine the
+    *                       current step's hash.
+    *
+    * TODO: document how to transform `MerkleNodeType a b` into `MerkleHash`
+    */
+    function runMerkleProof(
+      bytes32 subjectMerkleHash,
+      uint256 stepCount,
+      bytes32[] memory proofPathHashes,
+      bytes1[] memory proofPathSides
+    ) public pure returns(bytes32) {
+      require(proofPathHashes.length == stepCount,
+              "Invalid proof path: List of hashes not expected lenght (stepCount)");
+      require(proofPathSides.length == stepCount,
+              "Invalid proof path: List of sides not expected lenght (stepCount)");
+
+      bytes32 root = subjectMerkleHash;
+      for (uint i = 0; i < proofPathHashes.length; i++) {
+        bytes32 currProof = proofPathHashes[i];
+        bytes1 currSide = proofPathSides[i];
+        if (currSide == 0x00) {  // Left side
+          root = keccak256(abi.encodePacked(currProof, root));
+        } else if (currSide == 0x01) {  // Right side
+          root = keccak256(abi.encodePacked(root, currProof));
+        } else {
+          revert("Invalid proof object: Invalid `side` value provided");
+        }
+      }
+      return root;
+    }
+
 }
