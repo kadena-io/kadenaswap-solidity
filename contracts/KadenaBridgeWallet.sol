@@ -239,13 +239,14 @@ contract KadenaBridgeWallet {
               "Invalid proof path: List of sides not expected lenght (stepCount)");
 
       bytes32 root = subjectMerkleHash;
+      bytes1 nodeTag = 0x01;
       for (uint i = 0; i < proofPathHashes.length; i++) {
         bytes32 currProof = proofPathHashes[i];
         bytes1 currSide = proofPathSides[i];
-        if (currSide == 0x00) {  // Left side
-          root = keccak256(abi.encodePacked(currProof, root));
-        } else if (currSide == 0x01) {  // Right side
-          root = keccak256(abi.encodePacked(root, currProof));
+        if (currSide == 0x00) {  // concatenate `currProof` to LEFT of `root`
+          root = keccak256(abi.encodePacked(nodeTag, currProof, root));
+        } else if (currSide == 0x01) {  // concatenate `currProof` to RIGHT of `root`
+          root = keccak256(abi.encodePacked(nodeTag, root, currProof));
         } else {
           revert("Invalid proof object: Invalid `side` value provided");
         }

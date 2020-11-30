@@ -6,6 +6,26 @@ let someGas = web3.utils.toWei("0.01", "ether");
 let creator;
 let owner;
 
+function makeLeafHash(str) {
+  let inputHex = web3.utils.toHex(str);
+      inputBytes = web3.utils.hexToBytes(inputHex);
+      leafTagBytes = web3.utils.hexToBytes("0x00");
+      bytes = leafTagBytes.concat(inputBytes);
+      hex = web3.utils.bytesToHex(bytes);
+      hash = web3.utils.soliditySha3(hex);
+  return hash;  // in hex string
+}
+
+function makeNodeHash(hexA, hexB) {
+  let nodeTagBytes = web3.utils.hexToBytes("0x01");
+      bytesA = web3.utils.hexToBytes(hexA);
+      bytesB = web3.utils.hexToBytes(hexB);
+      bytes = nodeTagBytes.concat(bytesA.concat(bytesB));
+      hex = web3.utils.bytesToHex(bytes);
+      hash = web3.utils.soliditySha3(hex);
+  return hash;  // in hex string
+}
+
 contract ('KadenaBridgeWallet', (accounts) => {
 
     before(async () => {
@@ -13,6 +33,32 @@ contract ('KadenaBridgeWallet', (accounts) => {
         owner = accounts[1];
         other = accounts[2];
 	});
+
+  it("Validate simple SPV proof", async () => {
+      // Create the wallet contract
+      let kadenaBridgeWallet = await KadenaBridgeWallet.new(creator, owner, "someChainwebPublicKey");
+
+      let helloLeafHash = makeLeafHash("hello");
+          worldLeafHash = makeLeafHash("world");
+          expectedRoot = makeNodeHash(helloLeafHash, worldLeafHash);
+
+      assert(helloLeafHash == "0xaa872873635ad305d25327a952b25396b95b3ddfcfd661ab26241a853f70451c",
+            "Leaf hash of `hello` DOES NOT match Haskell calculated hash");
+      assert(worldLeafHash == "0x6fb62750ef421842f3daf5b532cb72ab6530a5e3005b7e76295717fd4d272a66",
+            "Leaf hash of `world` DOES NOT match Haskell calculated hash");
+      assert(expectedRoot == "0xe05caef6cbd3e77acdea8693af934b82b5b6ceeca539601af8deeede7c6455a1",
+            "Expected root DOES NOT Haskell calculated hash");
+
+      let actualRoot = await kadenaBridgeWallet.runMerkleProof(
+            helloLeafHash,   // subject hash
+            1, // proof path step count
+            [worldLeafHash], // proof path hashes
+            ["0x01"], // proof path sides (adds path proof to right)
+            {from: creator});
+
+      assert(expectedRoot == actualRoot,
+        "Expected and actual root DO NOT match");
+  });
 
   it("Cannot send ETH to bridge wallet via /send", async () => {
       let validProof = "someDummyValidProof";
