@@ -34,10 +34,11 @@ contract ('KadenaBridgeWallet', (accounts) => {
         other = accounts[2];
 	});
 
-  it("Validate simple SPV proof", async () => {
+  it("Validate simple Merkle proof", async () => {
       // Create the wallet contract
       let kadenaBridgeWallet = await KadenaBridgeWallet.new(creator, owner, "someChainwebPublicKey");
 
+      // Not valid merkle tree. Used to test iteration and hashing logic.
       let helloLeafHash = makeLeafHash("hello");
           worldLeafHash = makeLeafHash("world");
           expectedRoot = makeNodeHash(helloLeafHash, worldLeafHash);
