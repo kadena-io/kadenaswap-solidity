@@ -6,6 +6,12 @@ let someGas = web3.utils.toWei("0.01", "ether");
 let creator;
 let owner;
 
+// web3's `getGasPrice` returns value in wei
+let avgGasPrice = 47000000000; // in wei (average in last year)
+let slowerGasPrice = 29000000000; // in wei
+let veryFastGasPrice = 70000000000; // in wei
+let etherToUSD = 614.82;  // value of 1 ether in USD (Dec 2020)
+
 function makeLeafHash(str) {
   let inputHex = web3.utils.toHex(str);
       inputBytes = web3.utils.hexToBytes(inputHex);
@@ -25,6 +31,39 @@ function makeNodeHash(hexA, hexB) {
       hash = web3.utils.soliditySha3(hex);
   return hash;  // in hex string
 }
+
+function genProofN(proofLength) {
+  let subject = makeLeafHash("hello");
+      worldLeafHash = makeLeafHash("world");
+      hashes = Array.from({length: proofLength}, (_, i) => worldLeafHash);
+      sides = Array.from({length: proofLength}, (_, i) => "0x01");
+
+  return {
+    subject,
+    hashes,
+    sides,
+    proofLength
+  };
+};
+
+function getGasCosts(gas, gasPrice, etherToUSD) {
+  let wei = Number(gas * gasPrice);
+      ether = web3.utils.fromWei(wei.toFixed(0), 'ether');
+      usd = ether * etherToUSD;
+
+  console.log("Gas Price is " + gasPrice + " wei");
+  console.log("Gas estimation = " + gas + " units");
+  console.log("Gas cost estimation = " + wei + " wei");
+  console.log("Gas cost estimation = " + ether + " ether");
+  console.log("Gas cost estimation = " + usd + " USD");
+
+  return {
+    gas,
+    wei,
+    ether,
+    usd
+  };
+};
 
 contract ('KadenaBridgeWallet', (accounts) => {
 
@@ -59,6 +98,71 @@ contract ('KadenaBridgeWallet', (accounts) => {
 
       assert(expectedRoot == actualRoot,
         "Expected and actual root DO NOT match");
+  });
+
+  it("Gas costs for proof SIZE = 10 and AVERAGE gas price", async () => {
+
+      let gasPrice = avgGasPrice;  // in wei
+          etherToUSD = 614.82;  // value in USD of 1 ether
+
+      let kadenaBridgeWallet = await KadenaBridgeWallet.new(
+            creator, owner, "someChainwebPublicKey"
+          );
+
+      let proof = genProofN(10);
+          gasAmount = await kadenaBridgeWallet.runMerkleProof.estimateGas(
+            proof.subject,   // subject hash
+            proof.proofLength, // proof path step count
+            proof.hashes, // proof path hashes
+            proof.sides, // proof path sides (adds path proof to right)
+            {from: creator});
+          gas = Number(gasAmount);
+
+      console.log("Proof length = " + proof.proofLength);
+      let results = getGasCosts(gas, gasPrice, etherToUSD);
+  });
+
+  it("Gas costs for proof SIZE = 100 and AVERAGE gas price", async () => {
+
+      let gasPrice = avgGasPrice;  // in wei
+
+      let kadenaBridgeWallet = await KadenaBridgeWallet.new(
+            creator, owner, "someChainwebPublicKey"
+          );
+
+      let proof = genProofN(100);
+          gasAmount = await kadenaBridgeWallet.runMerkleProof.estimateGas(
+            proof.subject,   // subject hash
+            proof.proofLength, // proof path step count
+            proof.hashes, // proof path hashes
+            proof.sides, // proof path sides (adds path proof to right)
+            {from: creator});
+          gas = Number(gasAmount);
+
+      console.log("Proof length = " + proof.proofLength);
+      let results = getGasCosts(gas, gasPrice, etherToUSD);
+  });
+
+  it("Gas costs for proof SIZE = 1000 and AVERAGE gas price", async () => {
+
+      let gasPrice = avgGasPrice;  // in wei
+          etherToUSD = 614.82;  // value in USD of 1 ether
+
+      let kadenaBridgeWallet = await KadenaBridgeWallet.new(
+            creator, owner, "someChainwebPublicKey"
+          );
+
+      let proof = genProofN(1000);
+          gasAmount = await kadenaBridgeWallet.runMerkleProof.estimateGas(
+            proof.subject,   // subject hash
+            proof.proofLength, // proof path step count
+            proof.hashes, // proof path hashes
+            proof.sides, // proof path sides (adds path proof to right)
+            {from: creator});
+          gas = Number(gasAmount);
+
+      console.log("Proof length = " + proof.proofLength);
+      let results = getGasCosts(gas, gasPrice, etherToUSD);
   });
 
   it("Cannot send ETH to bridge wallet via /send", async () => {
