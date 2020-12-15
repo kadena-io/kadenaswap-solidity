@@ -152,6 +152,62 @@ contract ('KadenaBridgeWallet', (accounts) => {
         "Expected and actual root DO NOT match");
   });
 
+  it("Validate actual Merkle proof", async () => {
+      // Create the wallet contract
+      let kadenaBridgeWallet = await KadenaBridgeWallet.new(creator, owner, "someChainwebPublicKey");
+
+      /* To replicate in Haskell:
+        `{-# LANGUAGE TypeApplications #-}
+         {-# LANGUAGE OverloadedStrings #-}
+
+         import Data.MerkleLog
+         import qualified Data.ByteString as B
+         import Crypto.Hash.Algorithms (Keccak_256)
+         import qualified Data.ByteArray as BA
+         import qualified Data.Memory.Endian as BA
+
+         inputs = ["a", "b", "c"] :: [B.ByteString]
+         inputs' = map InputNode inputs
+
+         -- create tree
+         t = merkleTree @Keccak_256 inputs'
+
+         -- create inclusion proof
+         p = either (error . show) id $ merkleProof (inputs' !! 1) 1 t
+
+         (MerkleProof proofSubj proofObj) = p
+         subj = case (_getMerkleProofSubject proofSubj) of
+            InputNode b -> BA.convertToBase BA.Base16 (merkleLeaf @a b)
+            TreeNode r -> BA.convertToBase BA.Base16 r
+         // "e99905ac9f9583a5737a07d20a7129343f486f5f549b42c05192046188ef5f66"
+
+         BA.convertToBase @BA.Bytes BA.Base16 $ encodeMerkleProofObject proofObj :: BA.Bytes
+         // "000000020000000000000001009722201502e620d70d78ee63045f3493812c206b988cbbe76c28918a7364fdbd014c89fefa814dbe46b640ca2ffb4682a1eaad32985c6604e98cc0a2fd76e49550"
+
+         runMerkleProof p // P2wtbQwvzWd5XqUK8NyFyOLfiDLv48SeNtj-LnG8wHs
+         merkleRoot t // P2wtbQwvzWd5XqUK8NyFyOLfiDLv48SeNtj-LnG8wHs
+         BA.convertToBase @BA.Bytes BA.Base16 $ encodeMerkleRoot (merkleRoot t) :: BA.Bytes
+         // "3f6c2d6d0c2fcd67795ea50af0dc85c8e2df8832efe3c49e36d8fe2e71bcc07b"
+      */
+
+      // Not valid merkle tree. Used to test iteration and hashing logic.
+      let subj = "0xe99905ac9f9583a5737a07d20a7129343f486f5f549b42c05192046188ef5f66";
+          path = [ "0x9722201502e620d70d78ee63045f3493812c206b988cbbe76c28918a7364fdbd"
+                 , "0x4c89fefa814dbe46b640ca2ffb4682a1eaad32985c6604e98cc0a2fd76e49550"];
+          sides = ["0x00", "0x01"];
+          expectedRoot = "0x3f6c2d6d0c2fcd67795ea50af0dc85c8e2df8832efe3c49e36d8fe2e71bcc07b";
+
+      let actualRoot = await kadenaBridgeWallet.runMerkleProof(
+            subj,   // subject hash
+            2, // proof path step count
+            path, // proof path hashes
+            sides, // proof path sides (adds path proof to right)
+            {from: creator});
+
+      assert(expectedRoot == actualRoot,
+        "Expected and actual root DO NOT match");
+  });
+
   it("Gas costs for proof SIZE = 10 and AVERAGE gas price", async () => {
 
       let gasPrice = avgGasPrice;  // in wei
