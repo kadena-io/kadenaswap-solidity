@@ -1,6 +1,10 @@
+/**
+Source(s):
+- https://github.com/radek1st/time-locked-wallets/blob/master/test/TimeLockedWalletTest.js
+*/
+
 const KadenaBridgeWallet = artifacts.require("./KadenaBridgeWallet.sol");
 const ToptalToken = artifacts.require("./ToptalToken.sol");
-const SHA1 = artifacts.require("./SHA1.sol");
 
 let ethToSend = web3.utils.toWei("1", "ether");
 let someGas = web3.utils.toWei("0.01", "ether");
@@ -73,57 +77,6 @@ contract ('KadenaBridgeWallet', (accounts) => {
         owner = accounts[1];
         other = accounts[2];
 	});
-
-  it("Gas cost - SHA1 assembly implementation - SIZE = 10", async () => {
-    // Source: https://github.com/ensdomains/solsha1
-    let gasPrice = avgGasPrice;  // in wei
-        etherToUSD = 614.82;  // value in USD of 1 ether
-
-    let sha1Contract = await SHA1.new({from: creator});
-
-    let proof = genProofN(10);
-        gasAmount = await sha1Contract.sha1.estimateGas(
-          proof.sides,
-          {from: creator});
-        gas = Number(gasAmount);
-
-    console.log("SHA1 Proof length = " + proof.proofLength);
-    let results = getGasCosts(gas, gasPrice, etherToUSD);
-  });
-
-  it("Gas cost - SHA1 assembly implementation - SIZE = 100", async () => {
-    // Source: https://github.com/ensdomains/solsha1
-    let gasPrice = avgGasPrice;  // in wei
-        etherToUSD = 614.82;  // value in USD of 1 ether
-
-    let sha1Contract = await SHA1.new({from: creator});
-
-    let proof = genProofN(100);
-        gasAmount = await sha1Contract.sha1.estimateGas(
-          proof.sides,
-          {from: creator});
-        gas = Number(gasAmount);
-
-    console.log("SHA1 Proof length = " + proof.proofLength);
-    let results = getGasCosts(gas, gasPrice, etherToUSD);
-  });
-
-  it("Gas cost - SHA1 assembly implementation - SIZE = 1000", async () => {
-    // Source: https://github.com/ensdomains/solsha1
-    let gasPrice = avgGasPrice;  // in wei
-        etherToUSD = 614.82;  // value in USD of 1 ether
-
-    let sha1Contract = await SHA1.new({from: creator});
-
-    let proof = genProofN(1000);
-        gasAmount = await sha1Contract.sha1.estimateGas(
-          proof.sides,
-          {from: creator});
-        gas = Number(gasAmount);
-
-    console.log("SHA1 Proof length = " + proof.proofLength);
-    let results = getGasCosts(gas, gasPrice, etherToUSD);
-  });
 
   it("Validate simple Merkle proof", async () => {
       // Create the wallet contract
@@ -251,7 +204,7 @@ contract ('KadenaBridgeWallet', (accounts) => {
       let results = getGasCosts(gas, gasPrice, etherToUSD);
   });
 
-  it("Gas costs for proof SIZE = 1000 and AVERAGE gas price", async () => {
+  it("Gas costs for proof SIZE = 500 and AVERAGE gas price", async () => {
 
       let gasPrice = avgGasPrice;  // in wei
           etherToUSD = 614.82;  // value in USD of 1 ether
@@ -260,7 +213,7 @@ contract ('KadenaBridgeWallet', (accounts) => {
             creator, owner, "someChainwebPublicKey"
           );
 
-      let proof = genProofN(1000);
+      let proof = genProofN(500);
           gasAmount = await kadenaBridgeWallet.runMerkleProof.estimateGas(
             proof.subject,   // subject hash
             proof.proofLength, // proof path step count

@@ -1,3 +1,8 @@
+/**
+Source(s):
+- https://github.com/radek1st/time-locked-wallets/blob/master/test/TimeLockedWalletFactoryTest.js
+*/
+
 const KadenaBridgeWallet = artifacts.require("./KadenaBridgeWallet.sol");
 const KadenaBridgeFactory = artifacts.require("./KadenaBridgeFactory.sol");
 

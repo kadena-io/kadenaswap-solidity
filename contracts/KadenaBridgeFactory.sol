@@ -1,5 +1,10 @@
 pragma solidity ^0.5.16;
 
+/**
+Source(s):
+- https://github.com/radek1st/time-locked-wallets/blob/master/contracts/TimeLockedWalletFactory.sol
+*/
+
 import "./KadenaBridgeWallet.sol";
 
 contract KadenaBridgeFactory {

@@ -3,6 +3,11 @@ pragma solidity ^0.5.16;
 import './SafeMath.sol';
 import "./ERC20.sol";
 
+/**
+Source(s):
+- https://github.com/radek1st/time-locked-wallets/blob/master/contracts/TimeLockedWallet.sol
+*/
+
 contract KadenaBridgeWallet {
     using SafeMath for uint256;
 
@@ -140,7 +145,6 @@ contract KadenaBridgeWallet {
           return true;
       }
     }
-
 
     /**
     * @dev Retrieves information regarding this contract and its ether balance.
