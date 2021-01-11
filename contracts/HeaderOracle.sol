@@ -127,4 +127,49 @@ contract HeaderOracle {
       }
     }
   }
+
+  function isPayloadVerified(
+    bytes32 keccakPayloadHash,
+    string memory blockHeight,
+    string memory chainId,
+    string memory shaBlockHash
+  ) public view
+    returns(bool) {
+      if (verifiedPayloads[keccakPayloadHash].isPresent) {
+        PayloadInfo memory p = verifiedPayloads[keccakPayloadHash];
+        require(keccak256(abi.encodePacked(p.blockHeight)) ==
+                keccak256(abi.encodePacked(blockHeight)),
+                "Block height provided does not match");
+        require(keccak256(abi.encodePacked(p.chainId)) ==
+                keccak256(abi.encodePacked(chainId)),
+                "Chain id provided does not match");
+        require(keccak256(abi.encodePacked(p.shaBlockHash)) ==
+                keccak256(abi.encodePacked(shaBlockHash)),
+                "Block hash provided does not match");
+        return true;
+      } else {
+        return false;
+      }
+  }
+
+  function getVoterInfo(
+    bytes32 keccakPayloadHash
+  ) public view
+    returns(bool, bool, bool) {
+      require (pendingPayloads[keccakPayloadHash].payloadInfo.isPresent,
+              "Payload hash provided is not pending");
+      Vote memory v = pendingPayloads[keccakPayloadHash];
+      return (v.signer1Approval, v.signer2Approval, v.signer3Approval);
+  }
+
+  function getPendingPayloadInfo(
+    bytes32 keccakPayloadHash
+  ) public view
+    returns(string memory, string memory, string memory) {
+      require (pendingPayloads[keccakPayloadHash].payloadInfo.isPresent,
+              "Payload hash provided is not pending");
+      PayloadInfo memory p = pendingPayloads[keccakPayloadHash].payloadInfo;
+      return (p.blockHeight, p.chainId, p.shaBlockHash);
+  }
+
 }
