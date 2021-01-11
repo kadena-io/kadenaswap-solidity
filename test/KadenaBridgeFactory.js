@@ -10,13 +10,22 @@ let ethToSend = web3.utils.toWei("1", "ether");
 let kadenaBridgeFactory;
 let creator;
 let owner;
+let oracleSigner1;
+let oracleSigner2;
+let oracleSigner3;
 
 contract('KadenaBridgeFactory', (accounts) => {
 
     before(async () => {
         creator = accounts[0];
         owner = accounts[1];
-        kadenaBridgeFactory = await KadenaBridgeFactory.new({from: creator});
+        oracleSigner1 = accounts[2];
+        oracleSigner2 = accounts[3];
+        oracleSigner3 = accounts[4];
+        kadenaBridgeFactory = await KadenaBridgeFactory.new(
+          oracleSigner1,
+          oracleSigner2,
+          oracleSigner3);
 
     });
 

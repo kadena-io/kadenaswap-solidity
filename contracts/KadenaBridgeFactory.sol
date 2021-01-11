@@ -6,10 +6,22 @@ Source(s):
 */
 
 import "./KadenaBridgeWallet.sol";
+import "./HeaderOracle.sol";
 
 contract KadenaBridgeFactory {
 
+    HeaderOracle oracle;
     mapping(address => address[]) wallets;
+
+    /**
+    * @dev Create a new Kadena Bridge Factory and Header Oracle.
+    * @param signer1 The first authorized signer allowed to add to header oracle.
+    * @param signer2 The second authorized signer allowed to add to header oracle.
+    * @param signer3 The third authorized signer allowed to add to header oracle.
+    */
+    constructor(address signer1, address signer2, address signer3) public {
+      oracle = new HeaderOracle(signer1, signer2, signer3);
+    }
 
     /**
     * @dev Retrieves which wallets were created or owned by specific user.
@@ -31,10 +43,12 @@ contract KadenaBridgeFactory {
         address _owner,
         string memory _chainwebOwner
     ) public returns(address) {
+        address oracleAddr = address(oracle);
         KadenaBridgeWallet wallet = new KadenaBridgeWallet(
           msg.sender,
           _owner,
-          _chainwebOwner
+          _chainwebOwner,
+          oracleAddr
         );
         address walletAddr = address(wallet);
         wallets[msg.sender].push(walletAddr);

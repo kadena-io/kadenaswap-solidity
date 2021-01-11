@@ -5,11 +5,13 @@ Source(s):
 
 const KadenaBridgeWallet = artifacts.require("./KadenaBridgeWallet.sol");
 const ToptalToken = artifacts.require("./ToptalToken.sol");
+const HeaderOracle = artifacts.require("./HeaderOracle.sol");
 
 let ethToSend = web3.utils.toWei("1", "ether");
 let someGas = web3.utils.toWei("0.01", "ether");
 let creator;
 let owner;
+let oracle;
 
 // web3's `getGasPrice` returns value in wei
 let avgGasPrice = 47000000000; // in wei (average in last year)
@@ -76,11 +78,21 @@ contract ('KadenaBridgeWallet', (accounts) => {
         creator = accounts[0];
         owner = accounts[1];
         other = accounts[2];
+
+        oracleSigner1 = accounts[2];
+        oracleSigner2 = accounts[3];
+        oracleSigner3 = accounts[4];
+        oracleObj = await HeaderOracle.new(
+          oracleSigner1,
+          oracleSigner2,
+          oracleSigner3,
+          {from: creator});
+        oracle = oracleObj.address;
 	});
 
   it("Validate simple Merkle proof", async () => {
       // Create the wallet contract
-      let kadenaBridgeWallet = await KadenaBridgeWallet.new(creator, owner, "someChainwebPublicKey");
+      let kadenaBridgeWallet = await KadenaBridgeWallet.new(creator, owner, "someChainwebPublicKey", oracle);
 
       // Not valid merkle tree. Used to test iteration and hashing logic.
       let helloLeafHash = makeLeafHash("hello");
@@ -107,7 +119,7 @@ contract ('KadenaBridgeWallet', (accounts) => {
 
   it("Validate actual Merkle proof", async () => {
       // Create the wallet contract
-      let kadenaBridgeWallet = await KadenaBridgeWallet.new(creator, owner, "someChainwebPublicKey");
+      let kadenaBridgeWallet = await KadenaBridgeWallet.new(creator, owner, "someChainwebPublicKey", oracle);
 
       /* To replicate in Haskell:
         `{-# LANGUAGE TypeApplications #-}
@@ -167,7 +179,7 @@ contract ('KadenaBridgeWallet', (accounts) => {
           etherToUSD = 614.82;  // value in USD of 1 ether
 
       let kadenaBridgeWallet = await KadenaBridgeWallet.new(
-            creator, owner, "someChainwebPublicKey"
+            creator, owner, "someChainwebPublicKey", oracle
           );
 
       let proof = genProofN(10);
@@ -188,7 +200,7 @@ contract ('KadenaBridgeWallet', (accounts) => {
       let gasPrice = avgGasPrice;  // in wei
 
       let kadenaBridgeWallet = await KadenaBridgeWallet.new(
-            creator, owner, "someChainwebPublicKey"
+            creator, owner, "someChainwebPublicKey", oracle
           );
 
       let proof = genProofN(100);
@@ -210,7 +222,7 @@ contract ('KadenaBridgeWallet', (accounts) => {
           etherToUSD = 614.82;  // value in USD of 1 ether
 
       let kadenaBridgeWallet = await KadenaBridgeWallet.new(
-            creator, owner, "someChainwebPublicKey"
+            creator, owner, "someChainwebPublicKey", oracle
           );
 
       let proof = genProofN(500);
@@ -230,7 +242,7 @@ contract ('KadenaBridgeWallet', (accounts) => {
       let validProof = "someDummyValidProof";
 
       // Create the wallet contract
-      let kadenaBridgeWallet = await KadenaBridgeWallet.new(creator, owner, "someChainwebPublicKey");
+      let kadenaBridgeWallet = await KadenaBridgeWallet.new(creator, owner, "someChainwebPublicKey", oracle);
 
       // Attempt to send eth to the contract
       try {
@@ -243,7 +255,7 @@ contract ('KadenaBridgeWallet', (accounts) => {
       let validProof = "someDummyValidProof";
 
       // Create the wallet contract
-      let kadenaBridgeWallet = await KadenaBridgeWallet.new(creator, owner, "someChainwebPublicKey");
+      let kadenaBridgeWallet = await KadenaBridgeWallet.new(creator, owner, "someChainwebPublicKey", oracle);
 
       // Lock up eth in the contract
       await kadenaBridgeWallet.lockETH({value: ethToSend, from: creator});
@@ -263,7 +275,7 @@ contract ('KadenaBridgeWallet', (accounts) => {
 
         // Create the wallet contract
         let kadenaBridgeWallet = await KadenaBridgeWallet.new(
-          creator, owner, "someChainwebPublicKey");
+          creator, owner, "someChainwebPublicKey", oracle);
 
         // Create ToptalToken contract
         let toptalToken = await ToptalToken.new({from: creator});
@@ -297,7 +309,7 @@ contract ('KadenaBridgeWallet', (accounts) => {
 
         // Create the contract
         let kadenaBridgeWallet = await KadenaBridgeWallet.new(
-          creator, owner, "someChainwebPublicKey");
+          creator, owner, "someChainwebPublicKey", oracle);
 
         // Lock up eth in the contract
         await kadenaBridgeWallet.lockETH({value: ethToSend, from: creator});
@@ -329,7 +341,7 @@ contract ('KadenaBridgeWallet', (accounts) => {
 
         // Create the contract
         let kadenaBridgeWallet = await KadenaBridgeWallet.new(
-          creator, owner, "someChainwebPublicKey");
+          creator, owner, "someChainwebPublicKey", oracle);
 
         // Lock up eth in the contract
         await kadenaBridgeWallet.lockETH({value: ethToSend, from: creator});
@@ -362,7 +374,7 @@ contract ('KadenaBridgeWallet', (accounts) => {
 
         // Create new KadenaBridgeWallet
         let kadenaBridgeWallet = await KadenaBridgeWallet.new(
-          creator, owner, chainwebOwner);
+          creator, owner, chainwebOwner, oracle);
 
         // Create ToptalToken contract
         let toptalToken = await ToptalToken.new({from: creator});

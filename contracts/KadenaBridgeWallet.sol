@@ -2,6 +2,7 @@ pragma solidity ^0.5.16;
 
 import './SafeMath.sol';
 import "./ERC20.sol";
+import "./HeaderOracle.sol";
 
 /**
 Source(s):
@@ -14,6 +15,7 @@ contract KadenaBridgeWallet {
     address public creator;
     address public owner;
     string public chainwebOwner;
+    HeaderOracle oracle;
 
 
     /**
@@ -37,11 +39,13 @@ contract KadenaBridgeWallet {
     constructor (
         address _creator,
         address _owner,
-        string memory _chainwebOwner
+        string memory _chainwebOwner,
+        address _oracle
     ) public {
         creator = _creator;
         owner = _owner;
         chainwebOwner = _chainwebOwner;
+        oracle = HeaderOracle(_oracle);
     }
 
 
@@ -256,6 +260,30 @@ contract KadenaBridgeWallet {
         }
       }
       return root;
+    }
+
+    // TODO: document function
+    function checkProofInOracle(
+      bytes32 subjectMerkleHash,
+      uint256 stepCount,
+      bytes32[] memory proofPathHashes,
+      bytes1[] memory proofPathSides,
+      string memory blockHeight,
+      string memory chainId,
+      string memory shaBlockHash
+    ) public view returns(bool) {
+      bytes32 root = runMerkleProof(
+        subjectMerkleHash,
+        stepCount,
+        proofPathHashes,
+        proofPathSides
+      );
+      return oracle.isPayloadVerified(
+        root,
+        blockHeight,
+        chainId,
+        shaBlockHash
+      );
     }
 
 }
