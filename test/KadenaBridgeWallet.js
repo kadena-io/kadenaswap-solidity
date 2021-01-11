@@ -248,7 +248,9 @@ contract ('KadenaBridgeWallet', (accounts) => {
       try {
         await kadenaBridgeWallet.send(ethToSend, {from: creator});
         assert(false, "Expected error not received");
-      } catch (error) {} //expected
+      } catch (error) {
+        expect(error.reason).equal("Use `lockETH` to send ether to contract");
+      } //expected
   });
 
   it("Owner can withdraw the ETH funds with valid proof", async () => {
@@ -319,17 +321,23 @@ contract ('KadenaBridgeWallet', (accounts) => {
         try {
             await kadenaBridgeWallet.releaseETH(invalidProof, ethToSend, {from: owner});
             assert(false, "releaseETH: owner: Expected error not received");
-        } catch (error) {} // expected
+        } catch (error) {
+          expect(error.reason).equal("Invalid release proof");
+        } // expected
 
         try {
             await kadenaBridgeWallet.releaseETH(invalidProof, ethToSend, {from: creator});
             assert(false, "releaseETH: creator: Expected error not received");
-        } catch (error) {} // expected
+        } catch (error) {
+          expect(error.reason).equal("Sender is not the owner");
+        } // expected
 
         try {
             await kadenaBridgeWallet.releaseETH(invalidProof, ethToSend, {from: other});
             assert(false, "releaseETH: other: Expected error not received");
-        } catch (error) {} // expected
+        } catch (error) {
+          expect(error.reason).equal("Sender is not the owner");
+        } // expected
 
         // Contract balance is intact
         assert(ethToSend == await web3.eth.getBalance(kadenaBridgeWallet.address),
@@ -351,14 +359,18 @@ contract ('KadenaBridgeWallet', (accounts) => {
         let balanceBefore = await web3.eth.getBalance(owner);
 
         try {
-          await kadenaBridgeWallet.releaseETH(validProof, ethToSend, {from: creator})
+          await kadenaBridgeWallet.releaseETH(validProof, ethToSend, {from: creator});
           assert(false, "releaseETH: creator: Expected error not received");
-        } catch (error) {} //expected
+        } catch (error) {
+          expect(error.reason).equal("Sender is not the owner");
+        } //expected
 
         try {
-          await kadenaBridgeWallet.releaseETH(validProof, ethToSend, {from: other})
+          await kadenaBridgeWallet.releaseETH(validProof, ethToSend, {from: other});
           assert(false, "releaseETH: other: Expected error not received");
-        } catch (error) {} //expected
+        } catch (error) {
+          expect(error.reason).equal("Sender is not the owner");
+        } //expected
 
         // Contract balance is intact
         assert(ethToSend == await web3.eth.getBalance(kadenaBridgeWallet.address),
