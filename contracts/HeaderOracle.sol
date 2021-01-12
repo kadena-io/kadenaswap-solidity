@@ -78,7 +78,7 @@ contract HeaderOracle {
     }
   }
 
-  function hasVotes(Vote memory vote) private pure returns(bool) {
+  function hasVotes(bytes32 payloadHash, Vote memory vote) private returns(bool) {
     uint256 count = 0;
     if (vote.signer1Approval) {
       count += 1;
@@ -90,7 +90,16 @@ contract HeaderOracle {
       count += 1;
     }
 
-    if (count > 2) {
+    emit HashReceivedVote(
+        msg.sender,
+        count,
+        payloadHash,
+        vote.payloadInfo.blockHeight,
+        vote.payloadInfo.chainId,
+        vote.payloadInfo.shaBlockHash
+    );
+
+    if (count >= 2) {
       return true;
     }
     else {
@@ -112,16 +121,20 @@ contract HeaderOracle {
     if (pendingPayloads[keccakPayloadHash].payloadInfo.isPresent) {
       Vote memory prevVote = pendingPayloads[keccakPayloadHash];
       Vote memory newVote = updateVote(prevVote);
-      if (hasVotes(newVote)) {
+      if (hasVotes(keccakPayloadHash, newVote)) {
         verifiedPayloads[keccakPayloadHash] = newVote.payloadInfo;
+        delete pendingPayloads[keccakPayloadHash];
+        emit HashVerified(keccakPayloadHash, blockHeight, chainId, shaBlockHash);
       } else {
         pendingPayloads[keccakPayloadHash] = newVote;
       }
     } else {
       PayloadInfo memory p = PayloadInfo(blockHeight, chainId, shaBlockHash, true);
       Vote memory v = createVote(p);
-      if (hasVotes(v)) {
+      if (hasVotes(keccakPayloadHash, v)) {
         verifiedPayloads[keccakPayloadHash] = p;
+        delete pendingPayloads[keccakPayloadHash];
+        emit HashVerified(keccakPayloadHash, blockHeight, chainId, shaBlockHash);
       } else {
         pendingPayloads[keccakPayloadHash] = v;
       }
@@ -171,5 +184,21 @@ contract HeaderOracle {
       PayloadInfo memory p = pendingPayloads[keccakPayloadHash].payloadInfo;
       return (p.blockHeight, p.chainId, p.shaBlockHash);
   }
+
+  event HashReceivedVote(
+    address indexed signer,
+    uint256 indexed totalVotesSoFar,
+    bytes32 indexed keccakPayloadHash,
+    string blockHeight,
+    string chainId,
+    string shaBlockHash
+  );
+
+  event HashVerified(
+    bytes32 indexed keccakPayloadHash,
+    string blockHeight,
+    string chainId,
+    string shaBlockHash
+  );
 
 }
