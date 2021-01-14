@@ -1,7 +1,7 @@
-var KadenaSwapFactory = artifacts.require("KadenaSwapFactory");
-var ToptalToken = artifacts.require("ToptalToken");
+var KadenaBridgeFactory = artifacts.require("KadenaBridgeFactory.sol");
+var ToptalToken = artifacts.require("ToptalToken.sol");
 
 module.exports = function(deployer) {
-  deployer.deploy(KadenaSwapFactory);
+  deployer.deploy(KadenaBridgeFactory);
   deployer.deploy(ToptalToken);
 };
