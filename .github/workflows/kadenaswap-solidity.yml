@@ -41,8 +41,8 @@ jobs:
     - name: Compile contracts
       run: truffle compile
 
-    - name: Migrate contracts
-      run: truffle migrate
-
     - name: Run truffle tests
       run: truffle test
+
+    - name: Migrate contracts
+      run: truffle migrate
