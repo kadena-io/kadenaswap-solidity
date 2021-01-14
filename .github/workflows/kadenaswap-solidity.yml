@@ -43,6 +43,3 @@ jobs:
 
     - name: Run truffle tests
       run: truffle test
-
-    - name: Migrate contracts
-      run: truffle migrate
