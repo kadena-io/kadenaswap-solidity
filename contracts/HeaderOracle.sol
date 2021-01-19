@@ -5,105 +5,49 @@ import './SafeMath.sol';
 contract HeaderOracle {
   using SafeMath for uint256;
 
-  address public signer1;
-  address public signer2;
-  address public signer3;
+  uint256 numValidSigners = 0;
+
+  struct SignerInfo {
+    bool isAdmin;
+    bool isValid;
+    // ^ facilitates checking if signer in mapping
+    // TODO: Disabling signers needs restructuring to
+    //       undo votes by sender for a hash.
+  }
+
+  struct Signers {
+    address[] keys;
+    mapping (address => SignerInfo) map;
+  }
+  Signers signers;
 
   struct PayloadInfo {
     string blockHeight;
     string chainId;
     string shaBlockHash;
+    uint256 voteCount;
     bool isPresent; // to facilitate checking if key in mapping
   }
 
-  struct Vote {
-    bool signer1Approval;
-    bool signer2Approval;
-    bool signer3Approval;
-    PayloadInfo payloadInfo;
-  }
+  // keccak256 payload receipt root => PayloadInfo
+  mapping (bytes32 => PayloadInfo) payloads;
 
-  // keccak256 payload receipt root => BlockInfo
-  mapping (bytes32 => PayloadInfo) verifiedPayloads;
-
-  // keccak256 payload receipt root => Vote
-  mapping (bytes32 => Vote) pendingPayloads;
+  mapping (address => mapping (bytes32 => bool)) signedHashes;
 
   modifier validSignerOnly {
-      require(msg.sender == signer1 ||
-              msg.sender == signer2 ||
-              msg.sender == signer3,
+      require(signers.map[msg.sender].isValid,
               "Sender is not pre-authorized to add to oracle");
       _;
   }
 
-  constructor(address s1, address s2, address s3) public {
-    signer1 = s1;
-    signer2 = s2;
-    signer3 = s3;
-  }
-
-  function createVote(PayloadInfo memory payload) private
-    view returns(Vote memory){
-      if (msg.sender == signer1) {
-        Vote memory v = Vote(true, false, false, payload);
-        return v;
-      } else if (msg.sender == signer2) {
-        Vote memory v = Vote(false, true, false, payload);
-        return v;
-      } else if (msg.sender == signer3) {
-        Vote memory v = Vote(false, false, true, payload);
-        return v;
-      } else {
-        revert("Sender is not pre-authorized to add to oracle");
-      }
-  }
-
-  function updateVote(Vote memory vote) private view returns (Vote memory) {
-    PayloadInfo memory p = vote.payloadInfo;
-    bool signer1Approval = vote.signer1Approval;
-    bool signer2Approval = vote.signer2Approval;
-    bool signer3Approval = vote.signer3Approval;
-    if (msg.sender == signer1) {
-      Vote memory v = Vote(true, signer2Approval, signer3Approval, p);
-      return v;
-    } else if (msg.sender == signer2) {
-      Vote memory v = Vote(signer1Approval, true, signer3Approval, p);
-      return v;
-    } else if (msg.sender == signer3) {
-      Vote memory v = Vote(signer1Approval, signer2Approval, true, p);
-      return v;
-    } else {
-      revert("Sender is not pre-authorized to add to oracle");
-    }
-  }
-
-  function hasVotes(bytes32 payloadHash, Vote memory vote) private returns(bool) {
-    uint256 count = 0;
-    if (vote.signer1Approval) {
-      count += 1;
-    }
-    if (vote.signer2Approval) {
-      count += 1;
-    }
-    if (vote.signer3Approval) {
-      count += 1;
-    }
-
-    emit HashReceivedVote(
-        msg.sender,
-        count,
-        payloadHash,
-        vote.payloadInfo.blockHeight,
-        vote.payloadInfo.chainId,
-        vote.payloadInfo.shaBlockHash
-    );
-
-    if (count >= 2) {
-      return true;
-    }
-    else {
-      return false;
+  constructor(address[] memory admins) public {
+    uint adminCount = admins.length;
+    numValidSigners += adminCount;
+    for (uint i=0; i < adminCount; i++){
+      address admin = admins[i];
+      SignerInfo memory adminInfo = SignerInfo(true, true);
+      signers.keys.push(admin);
+      signers.map[admin] = adminInfo;
     }
   }
 
@@ -113,43 +57,12 @@ contract HeaderOracle {
     string memory chainId,
     string memory shaBlockHash
   ) validSignerOnly public {
-    if (verifiedPayloads[keccakPayloadHash].isPresent) {
-        revert("Provided payload hash already verified");
-        // TODO: Add logic for undoing a verified hash
-    }
-
-    if (pendingPayloads[keccakPayloadHash].payloadInfo.isPresent) {
-      Vote memory prevVote = pendingPayloads[keccakPayloadHash];
-      Vote memory newVote = updateVote(prevVote);
-      if (hasVotes(keccakPayloadHash, newVote)) {
-        verifiedPayloads[keccakPayloadHash] = newVote.payloadInfo;
-        delete pendingPayloads[keccakPayloadHash];
-        emit HashVerified(keccakPayloadHash, blockHeight, chainId, shaBlockHash);
+    if (payloads[keccakPayloadHash].isPresent) {
+      if (signedHashes[msg.sender][keccakPayloadHash]) {
+        revert("This signer already voted for the provided payload hash");
       } else {
-        pendingPayloads[keccakPayloadHash] = newVote;
-      }
-    } else {
-      PayloadInfo memory p = PayloadInfo(blockHeight, chainId, shaBlockHash, true);
-      Vote memory v = createVote(p);
-      if (hasVotes(keccakPayloadHash, v)) {
-        verifiedPayloads[keccakPayloadHash] = p;
-        delete pendingPayloads[keccakPayloadHash];
-        emit HashVerified(keccakPayloadHash, blockHeight, chainId, shaBlockHash);
-      } else {
-        pendingPayloads[keccakPayloadHash] = v;
-      }
-    }
-  }
+        PayloadInfo memory p = payloads[keccakPayloadHash];
 
-  function isPayloadVerified(
-    bytes32 keccakPayloadHash,
-    string memory blockHeight,
-    string memory chainId,
-    string memory shaBlockHash
-  ) public view
-    returns(bool) {
-      if (verifiedPayloads[keccakPayloadHash].isPresent) {
-        PayloadInfo memory p = verifiedPayloads[keccakPayloadHash];
         require(keccak256(abi.encodePacked(p.blockHeight)) ==
                 keccak256(abi.encodePacked(blockHeight)),
                 "Block height provided does not match");
@@ -159,42 +72,74 @@ contract HeaderOracle {
         require(keccak256(abi.encodePacked(p.shaBlockHash)) ==
                 keccak256(abi.encodePacked(shaBlockHash)),
                 "Block hash provided does not match");
-        return true;
+
+        payloads[keccakPayloadHash].voteCount += 1;
+        signedHashes[msg.sender][keccakPayloadHash] = true;
+
+        emit HashReceivedVote(
+          msg.sender,
+          payloads[keccakPayloadHash].voteCount,
+          keccakPayloadHash,
+          blockHeight,
+          chainId,
+          shaBlockHash);
+      }
+    } else {
+      PayloadInfo memory info = PayloadInfo(
+        blockHeight, chainId, shaBlockHash, 1, true);
+      payloads[keccakPayloadHash] = info;
+      signedHashes[msg.sender][keccakPayloadHash] = true;
+    }
+  }
+
+  function totalVotes(
+    bytes32 keccakPayloadHash,
+    string memory blockHeight,
+    string memory chainId,
+    string memory shaBlockHash
+  ) public view
+    returns(uint256) {
+      if (payloads[keccakPayloadHash].isPresent) {
+        PayloadInfo memory p = payloads[keccakPayloadHash];
+        require(keccak256(abi.encodePacked(p.blockHeight)) ==
+                keccak256(abi.encodePacked(blockHeight)),
+                "Block height provided does not match");
+        require(keccak256(abi.encodePacked(p.chainId)) ==
+                keccak256(abi.encodePacked(chainId)),
+                "Chain id provided does not match");
+        require(keccak256(abi.encodePacked(p.shaBlockHash)) ==
+                keccak256(abi.encodePacked(shaBlockHash)),
+                "Block hash provided does not match");
+        return p.voteCount;
       } else {
-        return false;
+        revert("Provided payload hash was not found");
       }
   }
 
-  function getVoterInfo(
+  function getPayloadInfo(
     bytes32 keccakPayloadHash
   ) public view
-    returns(bool, bool, bool) {
-      require (pendingPayloads[keccakPayloadHash].payloadInfo.isPresent,
+    returns(string memory, string memory, string memory, uint256) {
+      require (payloads[keccakPayloadHash].isPresent,
               "Payload hash provided is not pending");
-      Vote memory v = pendingPayloads[keccakPayloadHash];
-      return (v.signer1Approval, v.signer2Approval, v.signer3Approval);
+      PayloadInfo memory p = payloads[keccakPayloadHash];
+      return (p.blockHeight, p.chainId, p.shaBlockHash, p.voteCount);
   }
 
-  function getPendingPayloadInfo(
-    bytes32 keccakPayloadHash
-  ) public view
-    returns(string memory, string memory, string memory) {
-      require (pendingPayloads[keccakPayloadHash].payloadInfo.isPresent,
-              "Payload hash provided is not pending");
-      PayloadInfo memory p = pendingPayloads[keccakPayloadHash].payloadInfo;
-      return (p.blockHeight, p.chainId, p.shaBlockHash);
+  function isSignedBy(
+    bytes32 keccakPayloadHash,
+    address signer
+    ) public view returns (bool) {
+      return signedHashes[signer][keccakPayloadHash];
+    }
+
+  function getNumValidSigners() public view returns(uint256){
+    return numValidSigners;
   }
 
   event HashReceivedVote(
     address indexed signer,
-    uint256 indexed totalVotesSoFar,
-    bytes32 indexed keccakPayloadHash,
-    string blockHeight,
-    string chainId,
-    string shaBlockHash
-  );
-
-  event HashVerified(
+    uint256 indexed votesSoFar,
     bytes32 indexed keccakPayloadHash,
     string blockHeight,
     string chainId,

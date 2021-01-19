@@ -14,9 +14,7 @@ contract('HeaderOracle', (accounts) => {
         oracleSigner2 = accounts[3];
         oracleSigner3 = accounts[4];
         oracle = await HeaderOracle.new(
-          oracleSigner1,
-          oracleSigner2,
-          oracleSigner3,
+          [oracleSigner1, oracleSigner2, oracleSigner3],
           {from: creator});
     });
 
@@ -26,6 +24,10 @@ contract('HeaderOracle', (accounts) => {
             chainId = "1";
             shaBlockHash = web3.utils.soliditySha3("someBlockHash");
 
+        assert(3 ==
+              await oracle.getNumValidSigners(),
+              "Total number of signers should be 3");
+
         await oracle.addHash(
           keccakPayloadHash,
           blockHeight,
@@ -34,18 +36,17 @@ contract('HeaderOracle', (accounts) => {
           {from: oracleSigner1}
         );
 
-        assert(false ==
-               await oracle.isPayloadVerified(
+        assert(1 ==
+               await oracle.totalVotes(
                  keccakPayloadHash,
                  blockHeight,
                  chainId,
                  shaBlockHash),
-               "Payload should NOT be verified yet");
+               "Payload should only have ONE vote");
 
-        let voterInfo = await oracle.getVoterInfo(keccakPayloadHash);
-            signer1Approval = voterInfo[0];
-            signer2Approval = voterInfo[1];
-            signer3Approval = voterInfo[2];
+        let signer1Approval = await oracle.isSignedBy(keccakPayloadHash, oracleSigner1);
+            signer2Approval = await oracle.isSignedBy(keccakPayloadHash, oracleSigner2);
+            signer3Approval = await oracle.isSignedBy(keccakPayloadHash, oracleSigner3);
         assert(true == signer1Approval,
               "Signer 1 should have approved it");
         assert(false == signer2Approval,
@@ -53,16 +54,19 @@ contract('HeaderOracle', (accounts) => {
         assert(false == signer3Approval,
               "Signer 3 should NOT have approved it");
 
-        let payloadInfo = await oracle.getPendingPayloadInfo(keccakPayloadHash);
+        let payloadInfo = await oracle.getPayloadInfo(keccakPayloadHash);
             pHeight = payloadInfo[0];
             pChain = payloadInfo[1];
             pHash = payloadInfo[2];
+            pVotes = payloadInfo[3];
         assert(pHeight == blockHeight,
               "Block height does NOT match");
         assert(pChain == chainId,
               "Chain id does NOT match");
         assert(pHash == shaBlockHash,
               "Block hash does NOT match");
+        assert(pVotes == 1,
+              "Expected number of votes does NOT match");
 
         await oracle.addHash(
            keccakPayloadHash,
@@ -72,35 +76,24 @@ contract('HeaderOracle', (accounts) => {
            {from: oracleSigner2}
          );
 
-         assert(true ==
-                await oracle.isPayloadVerified(
+         assert(2 ==
+                await oracle.totalVotes(
                   keccakPayloadHash,
                   blockHeight,
                   chainId,
                   shaBlockHash),
-                "Payload should be verified now");
+                "Payload should have TWO votes");
 
-        /** TODO: verify that being deleted accuratly.
-        try {
-          await oracle.getPendingPayloadInfo(keccakPayloadHash);
-          assert(false, "getPendingPayloadInfo: Expected error not received");
-        } catch (error) {
-          expect(error.reason).equal("Payload hash provided is not pending");
-        } // expected
-        */
+          let signer1ApprovalAgain = await oracle.isSignedBy(keccakPayloadHash, oracleSigner1);
+              signer2ApprovalAgain = await oracle.isSignedBy(keccakPayloadHash, oracleSigner2);
+              signer3ApprovalAgain = await oracle.isSignedBy(keccakPayloadHash, oracleSigner3);
+          assert(true == signer1ApprovalAgain,
+                "Signer 1 should have approved it");
+          assert(true == signer2ApprovalAgain,
+                "Signer 2 should NOT have approved it");
+          assert(false == signer3ApprovalAgain,
+                "Signer 3 should NOT have approved it");
 
-        try {
-          await oracle.addHash(
-            keccakPayloadHash,
-            blockHeight,
-            chainId,
-            shaBlockHash,
-            {from: oracleSigner3}
-          );
-          assert(false, "addHash: Expected error not received");
-        } catch (error) {
-          expect(error.reason).equal("Provided payload hash already verified");
-        } // expected
     });
 
 });

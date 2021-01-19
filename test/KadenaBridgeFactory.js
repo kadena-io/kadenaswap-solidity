@@ -23,10 +23,7 @@ contract('KadenaBridgeFactory', (accounts) => {
         oracleSigner2 = accounts[3];
         oracleSigner3 = accounts[4];
         kadenaBridgeFactory = await KadenaBridgeFactory.new(
-          oracleSigner1,
-          oracleSigner2,
-          oracleSigner3);
-
+          [oracleSigner1,oracleSigner2,oracleSigner3]);
     });
 
     it("Factory created contract tracked and funded", async () => {

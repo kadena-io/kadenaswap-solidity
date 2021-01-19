@@ -278,12 +278,16 @@ contract KadenaBridgeWallet {
         proofPathHashes,
         proofPathSides
       );
-      return oracle.isPayloadVerified(
-        root,
-        blockHeight,
-        chainId,
-        shaBlockHash
-      );
+      uint256 voteCount = oracle.totalVotes(
+          root,
+          blockHeight,
+          chainId,
+          shaBlockHash
+        );
+      uint256 totalPossibleVotes = oracle.getNumValidSigners();
+      require(totalPossibleVotes - 1 == voteCount,
+              "Hash has not received the required number of votes");
+
     }
 
 }

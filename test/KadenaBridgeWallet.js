@@ -83,9 +83,7 @@ contract ('KadenaBridgeWallet', (accounts) => {
         oracleSigner2 = accounts[3];
         oracleSigner3 = accounts[4];
         oracleObj = await HeaderOracle.new(
-          oracleSigner1,
-          oracleSigner2,
-          oracleSigner3,
+          [oracleSigner1,oracleSigner2,oracleSigner3],
           {from: creator});
         oracle = oracleObj.address;
 	});

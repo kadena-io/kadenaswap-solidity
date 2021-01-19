@@ -15,12 +15,10 @@ contract KadenaBridgeFactory {
 
     /**
     * @dev Create a new Kadena Bridge Factory and Header Oracle.
-    * @param signer1 The first authorized signer allowed to add to header oracle.
-    * @param signer2 The second authorized signer allowed to add to header oracle.
-    * @param signer3 The third authorized signer allowed to add to header oracle.
+    * @param oracleAdmins array of signer addresses.
     */
-    constructor(address signer1, address signer2, address signer3) public {
-      oracle = new HeaderOracle(signer1, signer2, signer3);
+    constructor(address[] memory oracleAdmins) public {
+      oracle = new HeaderOracle(oracleAdmins);
     }
 
     /**
