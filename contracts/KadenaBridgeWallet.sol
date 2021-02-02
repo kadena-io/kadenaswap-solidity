@@ -204,6 +204,27 @@ contract KadenaBridgeWallet {
       string indexed releasedFrom
     );
 
+    function getStepCount(bytes memory b) public pure
+      returns (uint256, bytes memory, uint256, bytes memory){
+        uint256 count;
+        bytes memory count_b = new bytes(4);
+        uint256 idx;
+        bytes memory idx_b = new bytes(8);
+
+        for(uint i=0;i<4;i++){
+          count = count + uint256(uint8(b[i]))*(2**(8*(4-(i+1))));
+          count_b[i] = b[i];
+        }
+
+        uint j = 0;
+        for(uint i=4;i<12;i++){
+          idx = idx + uint256(uint8(b[i]))*(2**(8*(12-(i+1))));
+          idx_b[j] = b[i];
+          j += 1;
+        }
+
+        return (count, count_b, idx, idx_b);
+    }
 
     /** The original proof object is structured as follows:
     * |-- 4 bytes (a) --||-- 8 bytes (b) --||-- (c) .. --|
@@ -223,8 +244,8 @@ contract KadenaBridgeWallet {
     * @dev Execute an inclusion proof. The result of the execution is a
     *      Merkle root that must be compared to the trusted root of the
     *      Merkle tree.
-    * @param subjectMerkleHash The merkle hash of the subject for
-    *                          which inclusion is proven.
+    * @param subj The merkle hash of the subject for
+    *             which inclusion is proven.
     * @param stepCount The number of steps in the proof path.
     * @param proofPathHashes The proof object is parsed to create this list
     *                        of merkle hashes corresponding to proof path steps.
@@ -236,7 +257,7 @@ contract KadenaBridgeWallet {
     * TODO: document how to transform `MerkleNodeType a b` into `MerkleHash`
     */
     function runMerkleProof(
-      bytes32 subjectMerkleHash,
+      bytes memory subj,
       uint256 stepCount,
       bytes32[] memory proofPathHashes,
       bytes1[] memory proofPathSides
@@ -246,6 +267,7 @@ contract KadenaBridgeWallet {
       require(proofPathSides.length == stepCount,
               "Invalid proof path: List of sides not expected lenght (stepCount)");
 
+      bytes32 subjectMerkleHash = hashLeaf(subj);
       bytes32 root = subjectMerkleHash;
       bytes1 nodeTag = 0x01;
       for (uint i = 0; i < proofPathHashes.length; i++) {
@@ -262,9 +284,16 @@ contract KadenaBridgeWallet {
       return root;
     }
 
+    function hashLeaf(bytes memory b) public pure
+      returns (bytes32){
+        bytes1 leafTag = 0x00;
+        bytes32 hsh = keccak256(abi.encodePacked(leafTag, b));
+        return hsh;
+    }
+
     // TODO: document function
     function checkProofInOracle(
-      bytes32 subjectMerkleHash,
+      bytes memory subj,
       uint256 stepCount,
       bytes32[] memory proofPathHashes,
       bytes1[] memory proofPathSides,
@@ -273,7 +302,7 @@ contract KadenaBridgeWallet {
       string memory shaBlockHash
     ) public view returns(bool) {
       bytes32 root = runMerkleProof(
-        subjectMerkleHash,
+        subj,
         stepCount,
         proofPathHashes,
         proofPathSides

@@ -93,7 +93,8 @@ contract ('KadenaBridgeWallet', (accounts) => {
       let kadenaBridgeWallet = await KadenaBridgeWallet.new(creator, owner, "someChainwebPublicKey", oracle);
 
       // Not valid merkle tree. Used to test iteration and hashing logic.
-      let helloLeafHash = makeLeafHash("hello");
+      let hello = web3.utils.toHex("hello");
+          helloLeafHash = await kadenaBridgeWallet.hashLeaf(hello);
           worldLeafHash = makeLeafHash("world");
           expectedRoot = makeNodeHash(helloLeafHash, worldLeafHash);
 
@@ -105,7 +106,7 @@ contract ('KadenaBridgeWallet', (accounts) => {
             "Expected root DOES NOT Haskell calculated hash");
 
       let actualRoot = await kadenaBridgeWallet.runMerkleProof(
-            helloLeafHash,   // subject hash
+            hello,   // subject hex
             1, // proof path step count
             [worldLeafHash], // proof path hashes
             ["0x01"], // proof path sides (adds path proof to right)
@@ -154,14 +155,28 @@ contract ('KadenaBridgeWallet', (accounts) => {
       */
 
       // Not valid merkle tree. Used to test iteration and hashing logic.
-      let subj = "0xe99905ac9f9583a5737a07d20a7129343f486f5f549b42c05192046188ef5f66";
+      let subj = web3.utils.toHex("b");
+          expectedSubjHash = "0xe99905ac9f9583a5737a07d20a7129343f486f5f549b42c05192046188ef5f66";
           path = [ "0x9722201502e620d70d78ee63045f3493812c206b988cbbe76c28918a7364fdbd"
                  , "0x4c89fefa814dbe46b640ca2ffb4682a1eaad32985c6604e98cc0a2fd76e49550"];
           sides = ["0x00", "0x01"];
           expectedRoot = "0x3f6c2d6d0c2fcd67795ea50af0dc85c8e2df8832efe3c49e36d8fe2e71bcc07b";
 
+      assert(makeLeafHash("b") == expectedSubjHash,
+            "Expected subject hash is leaf hash");
+      let actualSubjHash = await kadenaBridgeWallet.hashLeaf(subj);
+      assert(expectedSubjHash == actualSubjHash,
+            "Expected subject hash matches leaf hash calculated by solidity contract");
+
+      arr = await kadenaBridgeWallet.getStepCount("0x000000020000000000000001009722201502e620d70d78ee63045f3493812c206b988cbbe76c28918a7364fdbd014c89fefa814dbe46b640ca2ffb4682a1eaad32985c6604e98cc0a2fd76e49550");
+      //arr = await kadenaBridgeWallet.getStepCount("0x00000002");
+      console.log(arr[0].toString());
+      console.log(arr[1]);
+      console.log(arr[2].toString());
+      console.log(arr[3]);
+
       let actualRoot = await kadenaBridgeWallet.runMerkleProof(
-            subj,   // subject hash
+            subj,   // subject in hex
             2, // proof path step count
             path, // proof path hashes
             sides, // proof path sides (adds path proof to right)
