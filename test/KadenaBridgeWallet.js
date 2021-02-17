@@ -116,6 +116,25 @@ contract ('KadenaBridgeWallet', (accounts) => {
         "Expected and actual root DO NOT match");
   });
 
+  it("Validate Merkle subject bytes encoding", async () => {
+      // Create the wallet contract
+      let kadenaBridgeWallet = await KadenaBridgeWallet.new(creator, owner, "someChainwebPublicKey", oracle);
+
+      // Encodes request key "VlVm90jiVdlkQ9frX_XtVtYeTj5lTOlcVkj65jsjSUM"
+      // Base64 URL No Padding: "ACsAAABWbFZtOTBqaVZkbGtROWZyWF9YdFZ0WWVUajVsVE9sY1ZrajY1anNqU1VN"
+      let rkBytes = "0x002b000000566c566d39306a6956646c6b51396672585f587456745965546a356c544f6c63566b6a36356a736a53554d";
+          rkParsed = await kadenaBridgeWallet.parseBytes(rkBytes);
+          rkExpectedHex = "0x566c566d39306a6956646c6b51396672585f587456745965546a356c544f6c63566b6a36356a736a53554d";
+
+      console.log(rkParsed[0]);
+      console.log(rkParsed[1].toString());
+      console.log(rkParsed[2]);
+
+      assert(rkExpectedHex == rkParsed[2],
+        "Failed to decode bytes");
+
+  });
+
   it("Validate actual Merkle proof", async () => {
       // Create the wallet contract
       let kadenaBridgeWallet = await KadenaBridgeWallet.new(creator, owner, "someChainwebPublicKey", oracle);
@@ -167,13 +186,6 @@ contract ('KadenaBridgeWallet', (accounts) => {
       let actualSubjHash = await kadenaBridgeWallet.hashLeaf(subj);
       assert(expectedSubjHash == actualSubjHash,
             "Expected subject hash matches leaf hash calculated by solidity contract");
-
-      arr = await kadenaBridgeWallet.getStepCount("0x000000020000000000000001009722201502e620d70d78ee63045f3493812c206b988cbbe76c28918a7364fdbd014c89fefa814dbe46b640ca2ffb4682a1eaad32985c6604e98cc0a2fd76e49550");
-      //arr = await kadenaBridgeWallet.getStepCount("0x00000002");
-      console.log(arr[0].toString());
-      console.log(arr[1]);
-      console.log(arr[2].toString());
-      console.log(arr[3]);
 
       let actualRoot = await kadenaBridgeWallet.runMerkleProof(
             subj,   // subject in hex

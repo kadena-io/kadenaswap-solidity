@@ -204,9 +204,72 @@ contract KadenaBridgeWallet {
       string indexed releasedFrom
     );
 
-    function getStepCount(bytes memory b) public pure
-      returns (uint256, bytes memory, uint256, bytes memory){
-        uint256 count;
+    function readIntegerLE(
+      bytes memory b,
+      uint ptr,
+      uint256 sizeInBytes
+    ) public pure returns (uint256) {
+      uint256 value = 0;
+      uint256 k = sizeInBytes - 1;
+
+      for (uint i = ptr; i < (ptr + sizeInBytes); i++) {
+        value = value + uint256(uint8(b[i]))*(2**(8*(4-(k+1))));
+        k -= 1;
+      }
+
+      return value;
+    }
+
+    function copyByteString(
+      bytes memory b,
+      uint ptr,
+      uint256 sizeInBytes
+    ) public pure returns (bytes memory) {
+      bytes memory value = new bytes(sizeInBytes);
+      uint j = 0;
+
+      for (uint i = ptr; i < (ptr + sizeInBytes); i++) {
+        value[j] = b[i];
+        j += 1;
+      }
+
+      return value;
+    }
+
+    function parseBytes(bytes memory b) public pure
+      returns (bytes1, uint256, bytes memory){
+        bytes1 bytesTag = b[0];
+        require(bytesTag == 0x0,
+                "parseBytes: expected 0x0 tag not found");
+
+        // Determines size of encoded bytes. Starts at idx = 1 and is 4 bytes.
+        uint256 numOfBytes = readIntegerLE(b, 1, 4);
+        // Copy bytestring of size `numOfBytes` from input bytestring
+        bytes memory parsed = copyByteString(b, 5, numOfBytes);
+
+        return (bytesTag, numOfBytes, parsed);
+    }
+
+    /** The events-based merkle proof subject is structured as follows:
+    * |-- X bytes (a) --|
+    *  (a): The first bytes represents the Chainweb request key identifying the
+    *       transaction where the events occurred. It will have the following format:
+    *       |-- 1 byte (i) --||-- 4 bytes (ii) --|
+    *       (i): '0x00' representing the `bytes` type.
+    *       (ii): The size in number of bytes of the request key as a left endian value.
+    */
+    function parseSubject(bytes memory b) public pure
+      returns (uint8, uint256){
+        uint8 reqKeyTag = uint8(b[0]);
+        uint256 reqKeySize;
+
+        for (uint i=1; i < 5; i++) {
+          reqKeySize = reqKeySize + uint256(uint8(b[i]))*(2**(8*(4-(i+1))));
+        }
+
+        return (reqKeyTag, reqKeySize);
+
+        /**uint256 count;
         bytes memory count_b = new bytes(4);
         uint256 idx;
         bytes memory idx_b = new bytes(8);
@@ -223,7 +286,7 @@ contract KadenaBridgeWallet {
           j += 1;
         }
 
-        return (count, count_b, idx, idx_b);
+        return (count, count_b, idx, idx_b, uint8(b[0]));**/
     }
 
     /** The original proof object is structured as follows:
