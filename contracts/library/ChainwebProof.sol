@@ -32,7 +32,6 @@ library ChainwebEventsProof {
    *       Therefore, to finalize the conversion, clients should utilize
    *       helper functions to convert `paramValue` into the appropriate
    *       Solidity type based on its `paramType`.
-   *
    */
   struct Parameter {
     ParameterType paramType;
@@ -67,7 +66,7 @@ library ChainwebEventsProof {
    }
 
    /**
-   * @dev Converts a sub-array of bytes into a left-endian 32 byte integer.
+   * @dev Converts a sub-array of bytes into a little-endian byte integer.
    * @param b Bytes array containing the sub-array of bytes that will be
    *          converted into an integer.
    * @param idx Start index of the sub-array of bytes to convert.
@@ -90,6 +89,32 @@ library ChainwebEventsProof {
 
     return value;
   }
+
+  /**
+  * @dev Converts a sub-array of bytes into a big-endian byte integer.
+  * @param b Bytes array containing the sub-array of bytes that will be
+  *          converted into an integer.
+  * @param idx Start index of the sub-array of bytes to convert.
+  * @param sizeInBytes Size of the sub-array of bytes to convert.
+  */
+ /** TODO: negative numbers **/
+ function readIntBE(
+   bytes memory b,
+   uint256 idx,
+   uint256 sizeInBytes
+ ) internal pure returns (uint256) {
+   uint256 value = 0;
+   uint256 k = sizeInBytes - 1;
+
+   /** TODO: safe math for uint8? WRONG this is little endian
+    **/
+   for (uint256 i = idx; i < (idx + sizeInBytes); i++) {
+     value = value + uint256(uint8(b[i]))*(2**(8*(4-(k+1))));
+     k -= 1;
+   }
+
+   return value;
+ }
 
   /**
   * @dev Reads a sub-array of bytes and returns it.
@@ -127,7 +152,7 @@ library ChainwebEventsProof {
   * |-- 1 byte (a) --||-- 4 bytes (b) --||-- n bytes (c) --|
   *
   * (a): The first byte is `0x00`, the ByteString Param tag.
-  * (b): The next 4 bytes encodes the size (a left-endian integer) of the
+  * (b): The next 4 bytes encodes the size (a little-endian integer) of the
   *      ByteString parameter in bytes.
   * (c): The rest `n` bytes encodes the actual parameter ByteString.
   *
@@ -155,7 +180,7 @@ library ChainwebEventsProof {
   }
 
   /**
-  * @dev Parses a Chainweb event parameter of type (left-endian) Integer.
+  * @dev Parses a Chainweb event parameter of type (little-endian) Integer.
   * @param b Bytes array containing the sub-array of bytes to convert.
   * @param idx Start index of the sub-array of bytes.
   * @param isTagged Boolean to indicate if sub-array contains the Integer
@@ -165,10 +190,10 @@ library ChainwebEventsProof {
   * |-- 1 byte (a) --||-- 32 bytes (b) --|
   *
   * (a): The first byte is `0x01`, the Integer Param tag.
-  * (b): The next 4 bytes encodes the size `n` (a left-endian integer)
+  * (b): The next 4 bytes encodes the size `n` (a little-endian integer)
   *      in number of bytes of the ByteString parameter.
   * (c): The next 32 bytes encodes the bytes sub-array representing
-  *      the (left-endian) integer parameter.
+  *      the (little-endian) integer parameter.
   *
   * NOTE: This function will mostly be used by clients to convert the raw
   *       integer bytes returned by `parseParam` into a Solidity integer.
@@ -261,7 +286,7 @@ library ChainwebEventsProof {
   * The array of event parameters will have the following format:
   * |-- 4 bytes (a) --||-- 1st n bytes (b) --|...|-- jth m bytes (b) --|
   *
-  * (a): The first 4 bytes (left-endian) encodes the size of the array in bytes.
+  * (a): The first 4 bytes (little-endian) encodes the size of the array in bytes.
   * (b): The rest of the bytes holds the paramters in their respective binary
   *      encoding in sequential order and one right after the other.
   *      See `parseParam` for more details.
@@ -352,7 +377,7 @@ library ChainwebEventsProof {
   * The array of events will have the following format:
   * |-- 4 bytes (a) --||-- 1st n bytes (b) --|...|-- jth m bytes (b) --|
   *
-  * (a): The first 4 bytes (left-endian) encodes the size of the array in bytes.
+  * (a): The first 4 bytes (little-endian) encodes the size of the array in bytes.
   * (b): The rest of the bytes holds the events in their respective binary
   *      encoding in sequential order and one right after the other.
   *      See `parseEvent` for details.
@@ -416,5 +441,85 @@ library ChainwebEventsProof {
 
       return (reqKey, events);
   }
+
+  /* =========================
+   *  EVENT PROOF FUNCTIONS
+   * =========================
+   **/
+
+   /**
+   * @dev Concatenate bytes with leaf tag and perform a Keccak256 hash.
+   * @param b Bytes array to hash.
+   */
+   function hashLeafKeccak256(bytes memory b) public pure
+     returns (bytes32){
+       bytes1 leafTag = 0x00;
+       bytes32 hsh = keccak256(abi.encodePacked(leafTag, b));
+       return hsh;
+   }
+
+   /**
+   * @dev Retrieves the size of Keccak256 hashes (i.e. 32 bytes).
+   */
+   function sizeOfProofKeccak256() public pure
+     returns (uint256){
+       return 32;
+   }
+
+   /**
+   * @dev Execute an inclusion proof. The result of the execution is a
+   *      Merkle root that must be compared to the trusted root of the
+   *      Merkle tree.
+   * @param subj The merkle hash of the subject for
+   *             which inclusion is proven.
+   * @param stepCount The number of steps in the proof path.
+   * @param proofPathHashes The proof object is parsed to create this list
+   *                        of merkle hashes corresponding to proof path steps.
+   * @param proofPathSides List of sides as bytes1 that indicate where to append
+   *                       the corresponding merkle hash in `proofPathHashes`
+   *                       to the previously calculated hash to determine the
+   *                       current step's hash.
+   *
+   * NOTE: The original proof object is structured as follows:
+   * |-- 4 bytes (a) --||-- 8 bytes (b) --||-- (c) .. --|
+   *  (a): The first 4 bytes encodes the number of proof steps
+   *       as a big endian value.
+   *  (b): The next 8 bytes encodes the index of the proof subject in
+   *       the input order as a big endian value.
+   *  (c): After the first 12 bytes, the rest of the bytes are the
+   *       proof path, composed of a series of proof steps. Each step is
+   *       a merkle hash of format:
+   *       |--1 byte (i) --||--`hashSize` bytes (ii)--|
+   *       (i): '0x00' (representing Left) and '0x01' (representing Right).
+   *       (ii): The hash needed to compute the current proof path.
+   *
+   */
+   function runMerkleProofKeccak256(
+     bytes memory subj,
+     uint256 stepCount,
+     bytes32[] memory proofPathHashes,
+     bytes1[] memory proofPathSides
+   ) public pure returns(bytes32) {
+     require(proofPathHashes.length == stepCount,
+             "Invalid proof path: List of hashes not expected lenght (stepCount)");
+     require(proofPathSides.length == stepCount,
+             "Invalid proof path: List of sides not expected lenght (stepCount)");
+
+     bytes32 subjectMerkleHash = hashLeafKeccak256(subj);
+     bytes32 root = subjectMerkleHash;
+     bytes1 nodeTag = 0x01;
+     for (uint i = 0; i < proofPathHashes.length; i++) {
+       bytes32 currProof = proofPathHashes[i];
+       bytes1 currSide = proofPathSides[i];
+       if (currSide == 0x00) {  // concatenate `currProof` to LEFT of `root`
+         root = keccak256(abi.encodePacked(nodeTag, currProof, root));
+       } else if (currSide == 0x01) {  // concatenate `currProof` to RIGHT of `root`
+         root = keccak256(abi.encodePacked(nodeTag, root, currProof));
+       } else {
+         revert("Invalid proof object: Invalid `side` value provided");
+       }
+     }
+     return root;
+   }
 
 }
