@@ -1,7 +1,7 @@
 pragma solidity ^0.5.16;
 
 
-import './SafeMath.sol';
+import '../SafeMath.sol';
 
 /**
  * @title ChainwebProof
@@ -10,9 +10,6 @@ import './SafeMath.sol';
 library ChainwebEventsProof {
   using SafeMath for uint256;
 
-  // All param integers are 256 bit (32 bytes)
-  uint sizeOfParamInt = 32;
-
   /**
    * @dev Represents all possible Chainweb Event parameter types.
    * NOTE: Order of enums also corresponds to these type's respective tags
@@ -20,8 +17,8 @@ library ChainwebEventsProof {
    *       For example, all ByteString parameters start with the `0x00` byte tag.
    */
   enum ParameterType {
-    ParamBytes,  // 0x0
-    ParamInt  // 0x1
+    Bytes,  // 0x0
+    Integer  // 0x1
   }
 
   /**
@@ -34,13 +31,12 @@ library ChainwebEventsProof {
    *
    *       Therefore, to finalize the conversion, clients should utilize
    *       helper functions to convert `paramValue` into the appropriate
-   *       Solidity type based on its `paramType` and `paramSize`.
+   *       Solidity type based on its `paramType`.
    *
    */
   struct Parameter {
     ParameterType paramType;
     bytes paramValue;
-    uint paramSize;
   }
 
   /**
@@ -55,27 +51,39 @@ library ChainwebEventsProof {
   }
 
   /* ===========================
-   *  INTERNAL HELPER FUNCTIONS
+   *  HELPER FUNCTIONS
    * ===========================
    **/
+
+   /**
+   * @dev Returns the size in bytes of Chainweb event parameters of type
+   *      integer (i.e. they're always 256 bits, or 32 bytes).
+   *
+   * NOTE: This getter function is needed because libraries in Solidity
+   *       cannot have non-constant state variables
+   */
+   function sizeOfParamInt() internal pure returns (uint256) {
+     return 32;
+   }
 
    /**
    * @dev Converts a sub-array of bytes into a left-endian 32 byte integer.
    * @param b Bytes array containing the sub-array of bytes that will be
    *          converted into an integer.
-   * @param ptr Start index of the sub-array of bytes to convert.
+   * @param idx Start index of the sub-array of bytes to convert.
    * @param sizeInBytes Size of the sub-array of bytes to convert.
    */
   /** TODO: negative numbers **/
   function readIntLE(
     bytes memory b,
-    uint ptr,
+    uint256 idx,
     uint256 sizeInBytes
   ) internal pure returns (uint256) {
     uint256 value = 0;
     uint256 k = sizeInBytes - 1;
 
-    for (uint i = ptr; i < (ptr + sizeInBytes); i++) {
+    /** safe math for uint8? **/
+    for (uint256 i = idx; i < (idx + sizeInBytes); i++) {
       value = value + uint256(uint8(b[i]))*(2**(8*(4-(k+1))));
       k -= 1;
     }
@@ -86,18 +94,18 @@ library ChainwebEventsProof {
   /**
   * @dev Reads a sub-array of bytes and returns it.
   * @param b Bytes array containing the sub-array of bytes to return.
-  * @param ptr Start index of the sub-array of bytes.
+  * @param idx Start index of the sub-array of bytes.
   * @param sizeInBytes Size of the sub-array of bytes.
   */
   function readByteString(
     bytes memory b,
-    uint ptr,
+    uint256 idx,
     uint256 sizeInBytes
   ) internal pure returns (bytes memory) {
     bytes memory value = new bytes(sizeInBytes);
-    uint j = 0;
+    uint256 j = 0;
 
-    for (uint i = ptr; i < (ptr + sizeInBytes); i++) {
+    for (uint256 i = idx; i < (idx + sizeInBytes); i++) {
       value[j] = b[i];
       j += 1;
     }
@@ -113,7 +121,7 @@ library ChainwebEventsProof {
   /**
   * @dev Parses a Chainweb event parameter of type ByteString.
   * @param b Bytes array containing the sub-array of bytes to return.
-  * @param ptr Start index of the sub-array of bytes.
+  * @param idx Start index of the sub-array of bytes.
   *
   * The ByteString event parameter will have the following format:
   * |-- 1 byte (a) --||-- 4 bytes (b) --||-- n bytes (c) --|
@@ -127,13 +135,14 @@ library ChainwebEventsProof {
   * @return parsed Just the parsed array of bytes.
   *
   */
-  function parseBytesParam(bytes memory b, uint idx) public pure
-    returns (uint, bytes memory){
-      uint currIdx = idx;
+  function parseBytesParam(bytes memory b, uint256 idx) public pure
+    returns (uint256, bytes memory){
+      uint256 currIdx = idx;
 
-      bytes1 bytesTag = b[idx];
+      uint256 bytesTag = readIntLE(b, idx, 1);
       currIdx += 1;
-      require(bytesTag == ParamBytes,
+      /** TODO: better way to compare tag? **/
+      require(bytesTag == uint256(ParameterType.Bytes),
               "parseBytesParam: expected 0x0 tag not found");
 
       uint256 numOfBytes = readIntLE(b, currIdx, 4);
@@ -148,7 +157,7 @@ library ChainwebEventsProof {
   /**
   * @dev Parses a Chainweb event parameter of type (left-endian) Integer.
   * @param b Bytes array containing the sub-array of bytes to convert.
-  * @param ptr Start index of the sub-array of bytes.
+  * @param idx Start index of the sub-array of bytes.
   * @param isTagged Boolean to indicate if sub-array contains the Integer
   *                 parameter tag (i.e. does the byte array start with `0x01`).
   *
@@ -172,19 +181,19 @@ library ChainwebEventsProof {
   *               integer.
   *
   */
-  function parseIntLEParam(bytes memory b, uint idx, bool isTagged) public pure
-    returns (uint, uint256){
-      uint currIdx = idx;
+  function parseIntLEParam(bytes memory b, uint256 idx, bool isTagged) public pure
+    returns (uint256, uint256){
+      uint256 currIdx = idx;
 
       if (isTagged == true) {
-        bytes1 intTag = b[idx];
+        uint256 intTag = readIntLE(b, idx, 1);
         currIdx += 1;
-        require(bytesTag == ParamInt,
+        require(intTag == uint256(ParameterType.Integer),
                 "parseIntLEParam: expected 0x01 tag not found");
       }
 
-      uint256 value = readIntLE(b, currIdx, sizeOfInt);
-      currIdx += sizeOfInt;
+      uint256 value = readIntLE(b, currIdx, sizeOfParamInt());
+      currIdx += sizeOfParamInt();
 
       return (currIdx, value);
   }
@@ -192,7 +201,7 @@ library ChainwebEventsProof {
   /**
   * @dev Parses a Chainweb event parameter depending on the parameter's type tag.
   * @param b Bytes array containing the sub-array of bytes to convert.
-  * @param ptr Start index of the sub-array of bytes.
+  * @param idx Start index of the sub-array of bytes.
   *
   * The event parameter will have the following format:
   * |-- 1 byte (a) --||-- n bytes (b) --|
@@ -203,28 +212,30 @@ library ChainwebEventsProof {
   *      determined by its type tag (a).
   *
   * @return currIdx (Ending index + 1) of the sub-array parsed.
-  * @return param The EventParam struct containing the type of the parameter,
+  * @return param The Parameter struct containing the type of the parameter,
   *               the raw bytes associated with it, and the size in bytes
   *               of the parameter.
                   NOTE: The raw bytes is stripped of all type
   *               type tags and size encodings for ByteString and Integer types.
   *
   */
-  function parseParam(bytes memory b, uint idx) public pure
-    return (uint, EventParam memory) {
-      uint currIdx = idx;
+  function parseParam(bytes memory b, uint256 idx) internal pure
+    returns (uint256, Parameter memory) {
+      uint256 currIdx = idx;
 
       // peek at the value of the type tag, but don't update index
-      bytes1 tag = b[currIdx];
+      uint256 tag = readIntLE(b, currIdx, 1);
 
-      if (tag == ParamBytes) {
+      if (tag == uint256(ParameterType.Bytes)) {
+        uint256 paramEndIdx;
+        bytes memory parsed;
         // `parseBytesParam` expects the tag byte
-        (sizeOfParam, parsed) = parseBytesParam(b, currIdx);
-        currIdx += sizeOfParam;
-        EventParam param = EventParam(ParamBytes, parsed);
+        (paramEndIdx, parsed) = parseBytesParam(b, currIdx);
+        currIdx = paramEndIdx;
+        Parameter memory param = Parameter(ParameterType.Bytes, parsed);
         return (currIdx, param);
       }
-      else if (tag == ParamInt) {
+      else if (tag == uint256(ParameterType.Integer)) {
         currIdx += 1;  // skips over tag byte
 
         /** NOTE: Gets raw integer bytes to make it easier to group parameters
@@ -232,9 +243,9 @@ library ChainwebEventsProof {
         *         to convert these bytes into their integer value.
         *         See `Parameter` struct documentation for more details.
         **/
-        intBytes = readByteString(b, currIdx, sizeOfIntParam);
-        currIdx += sizeOfIntParam;
-        EventParam param = EventParam(ParamInt, intBytes);
+        bytes memory intBytes = readByteString(b, currIdx, sizeOfParamInt());
+        currIdx += sizeOfParamInt();
+        Parameter memory param = Parameter(ParameterType.Integer, intBytes);
         return (currIdx, param);
       }
       else {
@@ -245,7 +256,7 @@ library ChainwebEventsProof {
   /**
   * @dev Parses an array of Chainweb event parameters.
   * @param b Bytes array containing the sub-array of bytes to convert.
-  * @param ptr Start index of the sub-array of bytes.
+  * @param idx Start index of the sub-array of bytes.
   *
   * The array of event parameters will have the following format:
   * |-- 4 bytes (a) --||-- 1st n bytes (b) --|...|-- jth m bytes (b) --|
@@ -256,22 +267,24 @@ library ChainwebEventsProof {
   *      See `parseParam` for more details.
   *
   * @return currIdx (Ending index + 1) of the sub-array parsed.
-  * @return params The EventParam array containing the parsed parameters.
+  * @return params The Parameter array containing the parsed parameters.
   *
   */
-  function parseParamsArray(bytes memory b, uint idx) public pure
-    return (uint, EventParam[] memory) {
-      uint currIdx = idx;
+  function parseParamsArray(bytes memory b, uint256 idx) internal pure
+    returns (uint256, Parameter[] memory) {
+      uint256 currIdx = idx;
 
-      uint256 numOfParams = readIntegerLE(b, currIdx, 4);
-      currIdx += 4
+      uint256 numOfParams = readIntLE(b, currIdx, 4);
+      currIdx += 4;
 
-      EventParam[] params = new array(numOfParams);
+      Parameter[] memory params = new Parameter[](numOfParams);
 
-      for (uint j = 0; i < numOfParams; i++) {
+      for (uint256 i = 0; i < numOfParams; i++) {
+        uint256 endIdx;
+        Parameter memory eventParam;
         (endIdx, eventParam) = parseParam(b, currIdx);
         currIdx = endIdx;
-        params[j] = eventParam;
+        params[i] = eventParam;
       }
 
       return (currIdx, params);
@@ -280,7 +293,7 @@ library ChainwebEventsProof {
   /**
   * @dev Parses a Chainweb event.
   * @param b Bytes array containing the sub-array of bytes to convert.
-  * @param ptr Start index of the sub-array of bytes.
+  * @param idx Start index of the sub-array of bytes.
   *
   * The array of events will have the following format:
   * |-- n bytes (a) --||-- m bytes (b) --||-- o bytes (c) --||-- p bytes (d) --|
@@ -299,31 +312,42 @@ library ChainwebEventsProof {
   *       parsed.
   *
   * @return currIdx (Ending index + 1) of the sub-array parsed.
-  * @return params The Event struct containing the parsed event fields.
+  * @return _event The Event struct containing the parsed event fields.
   *
   */
-  function parseEvent(bytes memory b, uint idx) public pure
-    return (Event memory) {
-      uint currIdx = idx;
+  function parseEvent(bytes memory b, uint256 idx) internal pure
+    returns (uint256, Event memory) {
+      uint256 currIdx = idx;
 
-      (_, sizeOfEventName, eventName) = parseBytesParam(b, currIdx);
-      currIdx += sizeOfEventName;
-      (_, sizeOfEventModule, eventModule) = parseBytesParam(b, currIdx);
-      currIdx += sizeOfEventModule;
-      (_, sizeOfModuleHash, moduleHash) = parseBytesParam(b, currIdx);
-      currIdx += sizeOfModuleHash;
+      uint256 eventNameEndIdx;
+      bytes memory eventName;
+      (eventNameEndIdx, eventName) = parseBytesParam(b, currIdx);
+      currIdx = eventNameEndIdx;
+
+      uint256 eventModuleEndIdx;
+      bytes memory eventModule;
+      (eventModuleEndIdx, eventModule) = parseBytesParam(b, currIdx);
+      currIdx = eventModuleEndIdx;
+
+      uint256 moduleHashEndIdx;
+      bytes memory eventModuleHash;
+      (moduleHashEndIdx, eventModuleHash) = parseBytesParam(b, currIdx);
+      currIdx = moduleHashEndIdx;
+
+      uint256 paramArrEndIdx;
+      Parameter[] memory params;
       (paramArrEndIdx, params) = parseParamsArray(b, currIdx);
       currIdx = paramArrEndIdx;
 
-      ChainwebEvent event = Event(eventName,eventModule,eventModuleHash,params);
+      Event memory _event = Event(eventName, eventModule, eventModuleHash, params);
 
-      return (currIdx, event);
+      return (currIdx, _event);
   }
 
   /**
   * @dev Parses an array of Chainweb events.
   * @param b Bytes array containing the sub-array of bytes to convert.
-  * @param ptr Start index of the sub-array of bytes.
+  * @param idx Start index of the sub-array of bytes.
   *
   * The array of events will have the following format:
   * |-- 4 bytes (a) --||-- 1st n bytes (b) --|...|-- jth m bytes (b) --|
@@ -337,19 +361,21 @@ library ChainwebEventsProof {
   * @return events The Event array containing the parsed events.
   *
   */
-  function parseEventsArray(bytes memory b, uint idx) public pure
-    return (Event[] memory) {
-      uint currIdx = idx;
+  function parseEventsArray(bytes memory b, uint256 idx) internal pure
+    returns (uint256, Event[] memory) {
+      uint256 currIdx = idx;
 
       uint256 numOfEvents = readIntLE(b, currIdx, 4);
       currIdx += 4;
 
-      ChainwebEvents[] events = new array(numOfEvents);
+      Event[] memory events = new Event[] (numOfEvents);
 
-      for (uint i = 0; i < numOfEvents; i++) {
-        (eventEndIdx, event) = parseEvent(b, currIdx);
+      for (uint256 i = 0; i < numOfEvents; i++) {
+        uint256 eventEndIdx;
+        Event memory _event;
+        (eventEndIdx, _event) = parseEvent(b, currIdx);
         currIdx = eventEndIdx;
-        events[i] = event;
+        events[i] = _event;
       }
 
       return (currIdx, events);
@@ -375,12 +401,19 @@ library ChainwebEventsProof {
   * @return events The Event array containing the parsed events.
   *
   */
-  function parseProofSubject(bytes memory b) public pure
-    returns (bytes[], Event[] memory){
+  function parseProofSubject(bytes memory b) internal pure
+    returns (bytes memory, Event[] memory){
       uint256 currIdx = 0;
+
+      uint256 reqKeyEndIdx;
+      bytes memory reqKey;
       (reqKeyEndIdx, reqKey) = parseBytesParam(b, currIdx);
       currIdx = reqKeyEndIdx;
-      events = parseEventsArray(b, currIdx);
+
+      Event[] memory events;
+      uint256 _i;
+      (_i, events) = parseEventsArray(b, currIdx);
+
       return (reqKey, events);
   }
 
