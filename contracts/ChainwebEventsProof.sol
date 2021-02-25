@@ -1,7 +1,7 @@
 pragma solidity ^0.5.16;
 
 
-import '../SafeMath.sol';
+import './SafeMath.sol';
 
 /**
  * @title ChainwebProof
@@ -81,9 +81,8 @@ library ChainwebEventsProof {
     uint256 value = 0;
     uint256 k = sizeInBytes - 1;
 
-    /** safe math for uint8? **/
     for (uint256 i = idx; i < (idx + sizeInBytes); i++) {
-      value = value + uint256(uint8(b[i]))*(2**(8*(4-(k+1))));
+      value = value + uint256(uint8(b[i]))*(2**(8*(sizeInBytes-(k+1))));
       k -= 1;
     }
 
@@ -106,10 +105,11 @@ library ChainwebEventsProof {
    uint256 value = 0;
    uint256 k = sizeInBytes - 1;
 
-   /** TODO: safe math for uint8? WRONG this is little endian
+   /** TODO: WRONG this is little endian
     **/
    for (uint256 i = idx; i < (idx + sizeInBytes); i++) {
      value = value + uint256(uint8(b[i]))*(2**(8*(4-(k+1))));
+     // number = number + uint(b[i])*(2**(8*(b.length-(i+1)))); big endian?
      k -= 1;
    }
 
@@ -459,6 +459,22 @@ library ChainwebEventsProof {
    }
 
    /**
+   * @dev Concatenate two bytes32 with node tag and perform a Keccak256 hash.
+   * @param hsh1 Bytes32 keccak256 hash
+   * @param hsh2 Bytes32 keccak256 hash
+   *
+   * NOTE: Hashes will be concatenating as such before being hashed:
+   * |-- nodeTag --||-- hsh1 --||-- hsh2 --|
+   *
+   */
+   function hashNodeKeccak256(bytes32 hsh1, bytes32 hsh2) public pure
+     returns (bytes32){
+       bytes1 nodeTag = 0x01;
+       bytes32 hsh = keccak256(abi.encodePacked(nodeTag, hsh1, hsh2));
+       return hsh;
+   }
+
+   /**
    * @dev Retrieves the size of Keccak256 hashes (i.e. 32 bytes).
    */
    function sizeOfProofKeccak256() public pure
@@ -507,14 +523,15 @@ library ChainwebEventsProof {
 
      bytes32 subjectMerkleHash = hashLeafKeccak256(subj);
      bytes32 root = subjectMerkleHash;
-     bytes1 nodeTag = 0x01;
+
      for (uint i = 0; i < proofPathHashes.length; i++) {
        bytes32 currProof = proofPathHashes[i];
        bytes1 currSide = proofPathSides[i];
+
        if (currSide == 0x00) {  // concatenate `currProof` to LEFT of `root`
-         root = keccak256(abi.encodePacked(nodeTag, currProof, root));
+         root = hashNodeKeccak256(currProof, root);
        } else if (currSide == 0x01) {  // concatenate `currProof` to RIGHT of `root`
-         root = keccak256(abi.encodePacked(nodeTag, root, currProof));
+         root = hashNodeKeccak256(root, currProof);
        } else {
          revert("Invalid proof object: Invalid `side` value provided");
        }

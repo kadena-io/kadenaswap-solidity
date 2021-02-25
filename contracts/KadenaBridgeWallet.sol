@@ -1,9 +1,9 @@
 pragma solidity ^0.5.16;
 
-import './SafeMath.sol';
+import "./SafeMath.sol";
 import "./ERC20.sol";
 import "./HeaderOracle.sol";
-import "./library/ChainwebProof.sol";
+import "./ChainwebEventsProof.sol";
 
 /**
 Source(s):
