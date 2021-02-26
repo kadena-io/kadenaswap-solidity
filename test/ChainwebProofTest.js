@@ -18,7 +18,7 @@ contract ('ChainwebProofTest', (accounts) => {
         tester = await ChainwebProofTest.new({from: creator});
 	});
 
-  it("Validate parsing bytes sub-array into little endian integer", async () => {
+  it("Validate converting a bytes sub-array into a little endian integer", async () => {
       // Bytes sub-array that encodes `43` (as little endian, 4 bytes)
       let encoding1 = "0x002b000000566c566d39306a6956646c6b51396672585f587456745965546a356c544f6c63566b6a36356a736a53554d";
                    //      ^-------^ sub-array in question
