@@ -24,6 +24,9 @@
 // const fs = require('fs');
 // const mnemonic = fs.readFileSync(".secret").toString().trim();
 
+const { alchemyApiKey_ropsten, mnemonic } = require('./secrets.json');
+const HDWalletProvider = require('@truffle/hdwallet-provider');
+
 module.exports = {
   /**
    * Networks define how you connect to your ethereum client and let you set the
@@ -42,11 +45,11 @@ module.exports = {
     // tab if you use this network and you must also set the `host`, `port` and `network_id`
     // options below to some value.
     //
-    // development: {
-    //  host: "127.0.0.1",     // Localhost (default: none)
-    //  port: 8545,            // Standard Ethereum port (default: none)
-    //  network_id: "*",       // Any network (default: none)
-    // },
+    development: {
+      host: "127.0.0.1",     // Localhost (default: none). Default for Ganache.
+      port: 8545,            // Standard Ethereum port (default: none). Default for Ganache.
+      network_id: "*",       // Any network (default: none)
+    },
     // Another network with more advanced options...
     // advanced: {
     // port: 8777,             // Custom port
@@ -72,6 +75,15 @@ module.exports = {
     // network_id: 2111,   // This network is yours, in the cloud.
     // production: true    // Treats this network as if it was a public net. (default: false)
     // }
+	ropsten: {
+	  provider: () => new HDWalletProvider(
+	    mnemonic, `https://eth-ropsten.alchemyapi.io/v2/${alchemyApiKey_ropsten}`
+	  ),
+	  network_id: 3,
+	  gasPrice: 10e9,
+	  skipDryRun: true
+	}
+
   },
 
   // Set default mocha options here, use special reporters etc.
