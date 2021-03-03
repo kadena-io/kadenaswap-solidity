@@ -24,9 +24,6 @@
 // const fs = require('fs');
 // const mnemonic = fs.readFileSync(".secret").toString().trim();
 
-const { alchemyApiKey_ropsten, mnemonic } = require('./secrets.json');
-const HDWalletProvider = require('@truffle/hdwallet-provider');
-
 module.exports = {
   /**
    * Networks define how you connect to your ethereum client and let you set the
@@ -52,7 +49,7 @@ module.exports = {
     //},
     local: {
       host: "127.0.0.1",     // Localhost (default: none). Default for Ganache.
-      port: 8545,            // Standard Ethereum port (default: none). Default for Ganache.
+      port: 8545,            // Standard Ethereum port (default: none). Default for Ganache local blockchain.
       network_id: "*",       // Any network (default: none)
     },
     // Another network with more advanced options...
@@ -81,9 +78,11 @@ module.exports = {
     // production: true    // Treats this network as if it was a public net. (default: false)
     // }
 	ropsten: {
-	  provider: () => new HDWalletProvider(
-	    mnemonic, `https://eth-ropsten.alchemyapi.io/v2/${alchemyApiKey_ropsten}`
-	  ),
+      provider: function() {
+        const { alchemyApiKey_ropsten, mnemonic } = require('./secrets.json');
+        const HDWalletProvider = require('@truffle/hdwallet-provider');
+        return new HDWalletProvider(mnemonic, `https://eth-ropsten.alchemyapi.io/v2/${alchemyApiKey_ropsten}`);
+      },
 	  network_id: 3,
 	  gasPrice: 10e9,
 	  skipDryRun: true
