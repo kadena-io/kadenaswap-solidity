@@ -45,7 +45,12 @@ module.exports = {
     // tab if you use this network and you must also set the `host`, `port` and `network_id`
     // options below to some value.
     //
-    development: {
+    //development: {
+    //  host: "127.0.0.1",     // Localhost (default: none). Default for Ganache.
+    //  port: 8545,            // Standard Ethereum port (default: none). Default for Ganache.
+    //  network_id: "*",       // Any network (default: none)
+    //},
+    local: {
       host: "127.0.0.1",     // Localhost (default: none). Default for Ganache.
       port: 8545,            // Standard Ethereum port (default: none). Default for Ganache.
       network_id: "*",       // Any network (default: none)
