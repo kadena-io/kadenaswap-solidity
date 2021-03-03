@@ -33,8 +33,9 @@ jobs:
       with:
         node-version: ${{ matrix.node-version }}
 
-    - name: Install truffle
+    - name: Install OpenZeppelin and Truffle
       run: |
+        npm install --save-dev @openzeppelin/contracts@v3.4.0
         npm install -g truffle
         truffle version
 
