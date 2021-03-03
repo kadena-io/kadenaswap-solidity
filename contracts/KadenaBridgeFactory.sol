@@ -1,4 +1,6 @@
-pragma solidity ^0.5.16;
+// SPDX-License-Identifier: MIT
+
+pragma solidity ^0.6.0;
 
 /**
 Source(s):
@@ -65,7 +67,7 @@ contract KadenaBridgeFactory {
     /**
     * @dev Prevents sending ether to the factory contract.
     */
-    function () external {
+    receive() external payable {
         revert();
     }
 

@@ -1,7 +1,9 @@
-pragma solidity ^0.5.16;
+// SPDX-License-Identifier: MIT
 
-import "./SafeMath.sol";
-import "./ERC20.sol";
+pragma solidity ^0.6.0;
+
+import '@openzeppelin/contracts/math/SafeMath.sol';
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "./HeaderOracle.sol";
 import "./ChainwebEventsProof.sol";
 
@@ -52,7 +54,7 @@ contract KadenaBridgeWallet {
     /**
     * @dev Only allows receiving eth through `lockETH` function.
     */
-    function() external payable {
+    receive() external payable {
         revert("Use `lockETH` to send ether to contract");
     }
 

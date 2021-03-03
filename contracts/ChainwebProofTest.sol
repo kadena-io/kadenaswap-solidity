@@ -1,7 +1,9 @@
-pragma solidity ^0.5.16;
+// SPDX-License-Identifier: MIT
+
+pragma solidity ^0.6.0;
 
 
-import "./SafeMath.sol";
+import '@openzeppelin/contracts/math/SafeMath.sol';
 import "./ChainwebEventsProof.sol";
 
 contract ChainwebProofTest {

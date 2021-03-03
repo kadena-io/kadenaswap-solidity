@@ -1,7 +1,9 @@
-pragma solidity ^0.5.16;
+// SPDX-License-Identifier: MIT
+
+pragma solidity ^0.6.0;
 
 
-import './SafeMath.sol';
+import '@openzeppelin/contracts/math/SafeMath.sol';
 
 /**
  * @title ChainwebProof
@@ -263,11 +265,10 @@ library ChainwebEventsProof {
       else if (tag == uint256(ParameterType.Integer)) {
         currIdx += 1;  // skips over tag byte
 
-        /** NOTE: Gets raw integer bytes to make it easier to group parameters
-        *         of different types. Clients will need to use `parseIntLEParam`
-        *         to convert these bytes into their integer value.
-        *         See `Parameter` struct documentation for more details.
-        **/
+        // NOTE: Gets raw integer bytes to make it easier to group parameters
+        // of different types. Clients will need to use `parseIntLEParam`
+        // to convert these bytes into their integer value.
+        // See `Parameter` struct documentation for more details.
         bytes memory intBytes = readByteString(b, currIdx, sizeOfParamInt());
         currIdx += sizeOfParamInt();
         Parameter memory param = Parameter(ParameterType.Integer, intBytes);

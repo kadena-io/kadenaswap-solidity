@@ -1,6 +1,8 @@
-pragma solidity ^0.5.16;
+// SPDX-License-Identifier: MIT
 
-import './SafeMath.sol';
+pragma solidity ^0.6.0;
+
+import '@openzeppelin/contracts/math/SafeMath.sol';
 
 contract HeaderOracle {
   using SafeMath for uint256;

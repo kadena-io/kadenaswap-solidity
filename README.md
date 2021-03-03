@@ -3,6 +3,8 @@
 ### Requirements
 - Install Truffle and Ganache using: https://myhsts.org/tutorial-learn-how-to-install-truffle-and-setup-ganache-for-compiling-ethereum-smart-contracts-for-tontine-dapp-game.php
 - Install web3. For macOS, see: "Dependencies" section in https://www.dappuniversity.com/articles/web3-js-intro
+- Install the OpenZeppelin Contracts via: https://docs.openzeppelin.com/learn/developing-smart-contracts#using-openzeppelin-contracts. For example,
+`npm install --save-dev @openzeppelin/contracts@v3.4.0`. We're currently using Solidity 0.6 and all the OpenZeppelin contracts we use compile with this version of Solidity.
 
 ### Interacting with Contract
 Via the Truffle Develop:
@@ -108,7 +110,7 @@ Compiling your contracts...
 ```
 NOTE: `compile` will compile all the solidity code in the /contracts directory.
 
-NOTE: `migrate` will deploy all the smart contracts in /migrations to the local node
+NOTE: `migrate` will deploy all the smart contracts in /migrations to the local blockchain node
        `truffle develop` spins up.
 
 NOTE:`test` will run all the tests in /test directory.
