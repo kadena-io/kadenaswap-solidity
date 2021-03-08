@@ -30,13 +30,13 @@ contract('KadenaBridgeFactory', (accounts) => {
         await kadenaBridgeFactory.newKadenaBridgeWallet(
             owner, "someChainwebPublicKey", {from: creator});
 
-        // Check if wallet can be found in creator's wallets.
-        let creatorWallets = await kadenaBridgeFactory.getWallets.call(creator);
+        // (local tx) Check if wallet can be found in creator's wallets.
+        let creatorWallets = await kadenaBridgeFactory.getWallets(creator);
         assert(1 == creatorWallets.length,
               "New wallet is not found in creator's wallets");
 
-        // Check if wallet can be found in owners's wallets.
-        let ownerWallets = await kadenaBridgeFactory.getWallets.call(owner);
+        // (local tx) Check if wallet can be found in owners's wallets.
+        let ownerWallets = await kadenaBridgeFactory.getWallets(owner);
         assert(1 == ownerWallets.length,
               "New wallet is not found in owner's wallet");
 

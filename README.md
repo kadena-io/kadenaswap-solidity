@@ -4,9 +4,69 @@
 - Install Truffle and Ganache using: https://myhsts.org/tutorial-learn-how-to-install-truffle-and-setup-ganache-for-compiling-ethereum-smart-contracts-for-tontine-dapp-game.php
 - Install web3. For macOS, see: "Dependencies" section in https://www.dappuniversity.com/articles/web3-js-intro
 - Install the OpenZeppelin Contracts via: https://docs.openzeppelin.com/learn/developing-smart-contracts#using-openzeppelin-contracts. For example,
-`npm install --save-dev @openzeppelin/contracts@v3.4.0`. We're currently using Solidity 0.6 and all the OpenZeppelin contracts we use compile with this version of Solidity.
+`npm install --save-dev @openzeppelin/contracts@v3.4.0`. We're currently using Solidity 0.6 and all the OpenZeppelin contracts used in this project compile with this version of Solidity.
 
-### Interacting with Contract
+### Common Truffle Commands
+Most truffle commands can be used with the `--network` flag as an option. For example,
+```shell
+$ truffle <command> --network <network_name>
+```
+The `network_name` must be a
+valid network name as specified in the "networks" section in `truffle-config.js`.
+
+If omitted, commands have a default network that they try to connect with. If the
+default network is not running, most commands will fail (with the exception of
+  `truffle test` that spins up its own "test" local blockchain).
+
+WARNING:
+> In a real-world application, you may want to estimate the gas of your transactions,
+and check a gas price oracle to know the optimal values to use on every transaction.
+> To estimate the gas: https://web3js.readthedocs.io/en/v1.2.0/web3-eth-contract.html#methods-mymethod-estimategas
+> To check gas price oracle: https://ethgasstation.info/
+
+`$ truffle compile` will compile all the solidity code in the /contracts directory.
+
+`$ truffle migrate [--network <name>]` will deploy all the smart contracts in /migrations to the
+default network or the one specified.
+
+`$ truffle test [--network <name>]` will run all the tests in /test directory against its own "test"
+local blockchain or the specified network.
+
+`$ truffle exec <script.js> [--network <name>]` will run the specified script against the
+default network or the specified one. The file should have the following format:
+```javascript
+// script.js
+module.exports = async function main(callback) {
+  try {
+    // VERY IMPORTANT: Code must go here.
+
+    callback(0);
+  } catch (error) {
+    console.error(error);
+    callback(1);
+  }
+}
+```
+
+`$ truffle console [--network <name>]` allows interaction with the specified network.
+There are two types of consoles: Truffle Develop vs Truffle Console.
+`Truffle Console` is a basic interactive console connecting to any Ethereum client.
+`Truffle Develop` is an interactive console that also spawns a development blockchain.
+
+NOTE: When experiencing some weird behavior, one strategy is to delete the contents
+of /build/*, as this will get repopulated after a `truffle compile`.
+
+NOTE: In general, if you execute a contract method, Truffle will intelligently
+figure out whether it needs to make a transaction or a call. If your function
+can be executed as a call, then Truffle will do so and you will be able to avoid gas costs.
+
+More ways to interact with the smart contracts via Truffle can be found here:
+https://www.trufflesuite.com/docs/truffle/getting-started/interacting-with-your-contracts
+
+For further documentation on these commands:
+https://www.trufflesuite.com/docs/truffle/reference/truffle-commands
+
+### Example: Using the Truffle Develop Console
 Via the Truffle Develop:
 ```shell
 $ truffle develop
@@ -108,12 +168,3 @@ Compiling your contracts...
   0 passing (0ms)
 
 ```
-NOTE: `compile` will compile all the solidity code in the /contracts directory.
-
-NOTE: `migrate` will deploy all the smart contracts in /migrations to the local blockchain node
-       `truffle develop` spins up.
-
-NOTE:`test` will run all the tests in /test directory.
-
-More ways to interact with the smart contracts via Truffle can be found here:
-https://www.trufflesuite.com/docs/truffle/getting-started/interacting-with-your-contracts

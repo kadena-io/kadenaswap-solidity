@@ -1,6 +1,11 @@
 /**
 Source(s):
 - https://github.com/radek1st/time-locked-wallets/blob/master/test/TimeLockedWalletTest.js
+
+TODO:
+- Make sure failure tests actually failing as expected (right now I think they're being swallowed up).
+
+
 */
 
 const KadenaBridgeWallet = artifacts.require("./KadenaBridgeWallet.sol");
