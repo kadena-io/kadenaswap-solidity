@@ -122,6 +122,16 @@ module.exports = {
 };
 
 function getEtherscanApiKey() {
-  const { etherscanApiKey } = require('./secrets.json');
-  return etherscanApiKey;
+  const fs = require('fs')
+  const path = './secrets.json'
+
+  try {
+    if (fs.existsSync(path)) {
+      //file exists
+      const { etherscanApiKey } = require('./secrets.json');
+      return etherscanApiKey;
+    }
+  } catch(err) {
+    return "";
+  }
 }

@@ -38,6 +38,7 @@ jobs:
         npm install --save-dev @openzeppelin/contracts@v3.4.0
         npm install -g truffle
         truffle version
+        npm install
 
     - name: Compile contracts
       run: truffle compile
