@@ -1,24 +1,73 @@
-# KadenaSwap Solidity Smart Contract
+# Chainweb-Ethereum Bridge: Solidity Smart Contracts
 
 ### Requirements
-- Install Truffle and Ganache using: https://myhsts.org/tutorial-learn-how-to-install-truffle-and-setup-ganache-for-compiling-ethereum-smart-contracts-for-tontine-dapp-game.php
-- Install web3. For macOS, see: "Dependencies" section in https://www.dappuniversity.com/articles/web3-js-intro
-- Install the OpenZeppelin Contracts via: https://docs.openzeppelin.com/learn/developing-smart-contracts#using-openzeppelin-contracts. For example,
-`npm install --save-dev @openzeppelin/contracts@v3.4.0`. We're currently using Solidity 0.6 and all the OpenZeppelin contracts used in this project compile with this version of Solidity.
+#### Truffle and Ganache
+- Install `Truffle` and `Ganache` using: https://myhsts.org/tutorial-learn-how-to-install-truffle-and-setup-ganache-for-compiling-ethereum-smart-contracts-for-tontine-dapp-game.php
+- Install `Yarn` using: https://classic.yarnpkg.com/en/docs/install/#mac-stable
+
+#### Other Dependencies
+- Install `truffle-plugin-verify` via https://github.com/rkalis/truffle-plugin-verify/#installation--preparation.
+- `package.json` holds the NodeJS dependencies for this project. So running `npm install` should install the rest of these dependencies. But if you're     seeing compiling issues, try installing them manually as specified below:
+  - Install `web3`. For macOS, see: "Dependencies" section in https://www.dappuniversity.com/articles/web3-js-intro
+  - Install the `OpenZeppelin` Contracts via: https://docs.openzeppelin.com/learn/developing-smart-contracts#using-openzeppelin-contracts. For example,
+    `npm install --save-dev @openzeppelin/contracts@v3.4.0`. We're currently using Solidity 0.6 and all the OpenZeppelin v3.4 contracts used in this project compile with this version of Solidity.
+  - Install Truffle's `HDwallet Provider` via https://github.com/trufflesuite/truffle/tree/master/packages/hdwallet-provider
+
+#### Services Used
+- (Optional) Set up `MetaMask` via https://metamask.io/. This will be useful in keeping track of ETH balances across different networks.
+- Set up `Alchemy` or `Infura` via https://www.alchemyapi.io/ or https://infura.io/. The API key created from one of these will be used to connect to Mainnet and Ropsten Testnet nodes.
+- Set up an `Etherscan` Api key via https://etherscan.io/apis. This will be useful when verifying deployed contract source code later on.
+
+#### Creating a `secrets.json`
+Create a `secrets.json` file with the following format:
+```json
+{
+  "mnemonic": "drama film snack motion ...",
+  "apiKey_ropsten": "JPV2...",
+  "ropsten_url": "https://eth-ropsten.alchemyapi.io/v2/",
+  "etherscanApiKey": "HKF2..."
+}
+```
+
+To create the `mnemonic`:
+
+```shell
+$ npx mnemonics
+drama film snack motion ...
+```
+
+The `apiKey_ropsten` field should be populated with the Alchemy or Infura API key created in previously.
+
+Similarly, the `ropsten_url` should be the URL to connect to an Alchemy or Infura node. Since the `apiKey_ropsten` will be concatenated to the end of `ropsten_url`, the url should end with `/`. If using Alchemy, for example, the url is `https://eth-ropsten.alchemyapi.io/v2/`.
+
+The `etherscanApiKey` should be the Etherscan API key generate in the previous step.
+
+**WARNING**:
+> Make sure to keep your mnemonic and the rest of the `secrets.json` file secure. Do not commit secrets to version control. Even if it is just for testing purposes, there are still malicious users out there who will wreak havoc on your Testnet deployment for fun!
+
+A lot of this structure is derived from these instructions: https://docs.openzeppelin.com/learn/connecting-to-public-test-networks#configuring-the-network.
+
+### Entry Points
+For every Solidity contract in `/contracts` there should be an accompanying Javascript file with the same name in `/test`. Looking at the tests is a good way to familiarize yourself with the contracts.
+
+The most important contract is the `ChainwebEventsProof.sol` contract as this library provides:
+- Functions and types for parsing the Merkle Event Proofs locking up ETH or tokens on Chainweb and thus releasing them on Ethereum. These proofs have a specific binary encoding that is discussed further there.
+- Functions for performing the inclusion Merkle proof.
+
+The general workflow is to run the `compile` command below, then `test`, and lastly check `migrate` against the networks in question.
 
 ### Common Truffle Commands
 Most truffle commands can be used with the `--network` flag as an option. For example,
 ```shell
 $ truffle <command> --network <network_name>
 ```
+
 The `network_name` must be a
 valid network name as specified in the "networks" section in `truffle-config.js`.
 
-If omitted, commands have a default network that they try to connect with. If the
-default network is not running, most commands will fail (with the exception of
-  `truffle test` that spins up its own "test" local blockchain).
+If omitted, commands have a default network that they try to connect with. If the default network is not running, most commands will fail. This exception to this is `$ truffle test`, which will spin its own "test" local blockchain if the network option is left out.
 
-WARNING:
+**WARNING**:
 > In a real-world application, you may want to estimate the gas of your transactions,
 and check a gas price oracle to know the optimal values to use on every transaction.
 > To estimate the gas: https://web3js.readthedocs.io/en/v1.2.0/web3-eth-contract.html#methods-mymethod-estimategas
@@ -47,10 +96,11 @@ module.exports = async function main(callback) {
   }
 }
 ```
+OpenZeppelin has examples of interacting programmatically with contracts via `exec` here https://docs.openzeppelin.com/learn/deploying-and-interacting#interacting-programmatically.
 
 `$ truffle console [--network <name>]` allows interaction with the specified network.
 There are two types of consoles: Truffle Develop vs Truffle Console.
-`Truffle Console` is a basic interactive console connecting to any Ethereum client.
+`Truffle Console` is a basic interactive console connecting to any Ethereum client. OpenZeppelin has some instructions on interacting with the Console here: https://docs.openzeppelin.com/learn/deploying-and-interacting#interacting-from-the-console
 `Truffle Develop` is an interactive console that also spawns a development blockchain.
 
 NOTE: When experiencing some weird behavior, one strategy is to delete the contents
@@ -168,3 +218,58 @@ Compiling your contracts...
   0 passing (0ms)
 
 ```
+### Getting Ready for Production
+A lot of the following is abbreviated from three articles:
+- https://docs.openzeppelin.com/learn/deploying-and-interacting (make sure to see the Truffle instructions)
+- https://docs.openzeppelin.com/learn/connecting-to-public-test-networks
+- https://docs.openzeppelin.com/learn/preparing-for-mainnet
+
+There are two networks defined in `truffle-config.js` that will help with testing: `local` and `ropsten`.
+
+To check the connection to `ropsten`, do the following:
+
+```
+$ truffle console --network ropsten
+truffle(rinkeby)> accounts
+[ '0xEce6999C6c5BDA71d673090144b6d3bCD21d13d4',
+  '0xC1310ade58A75E6d4fCb8238f9559188Ea3808f9',
+...
+truffle(rinkeby)> await web3.eth.getBalance(accounts[0])
+'0'
+```
+
+To run `local`, you need to run the executable at `scripts/run_expensive_network.sh`.
+
+```shell
+$ ./scripts/run_expensive_network.sh
+```
+
+This will run a ganache-cli local blockchain with a high gas price that will be similar to the average speed gas price on Mainnet. This will be useful for finding out how much operations cost. It has been configured to run on the local port that `truffle-config.js` expects the network labeled `local` to operate out of. This network also creates the same accounts as the ones that will be used for `ropsten` because they use the same mnemonic. This was done in case logic that hard codes addresses will be used later on.
+
+Once the tests have passed and they've been run against the `local` network, you should create Javascript scripts that will run with the `exec` command. Look at `scripts/testnet_factory_deploy.js` for an example (this script calls the deployed sample Factory contract to create a new Bridge wallet, and lock up some ETH). This example also shows how to do some gas analysis to better estimate costs.
+
+```shell
+$ truffle test --network local
+$ truffle migrate --network local
+$ truffle exec scripts/testnet_factory_deploy.js --network local
+```
+
+This also provides a programatic way to interact with your deployed contracts. Something to note is that you must have run `migrate` against the specified network before running `exec`. Also note that `2_initial_migration.js` has conditional statements to only deploy certain contracts to certain networks. This allows not accidentally deploying testing contracts for example.
+
+Once you've run the scripts against `local` to your satisfaction and no errors, you can `exec` the same script to `ropsten`. For example,
+
+```shell
+$ truffle migrate --network ropsten
+$ truffle exec scripts/testnet_factory_deploy.js --network ropsten
+```
+
+### Verifying Deployed Contracts
+The `truffle-plugin-verify` plugin connects to Etherscan using the API key you provided in `secrets.json` to verify the source code of deployed contracts.
+
+```
+$ truffle run verify ChainwebEventsProof KadenaBridgeFactory --network ropsten --debug
+```
+
+For more instructions on how to use the plugin, check out this article https://kalis.me/verify-truffle-smart-contracts-etherscan/.
+
+NOTE: The contracts deployed via `migrate` are the only ones that can be verified using this plugin (at least from what I've tried). So if your contract deploys another contract (as the case with the Bridge Factory contract that creates and deploys Kadena Bridge wallets), then the deployed contract needs to be verified another way.

@@ -1,2 +1,4 @@
 /build
 secrets.json
+node_modules/
+*-lock.json

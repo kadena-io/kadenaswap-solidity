@@ -35,6 +35,14 @@ module.exports = {
    * $ truffle test --network <network-name>
    */
 
+   plugins: [
+     'truffle-plugin-verify'
+   ],
+
+   api_keys: {
+     etherscan: getEtherscanApiKey()
+   },
+
   networks: {
     // Useful for testing. The `development` name is special - truffle uses it by default
     // if it's defined here and no other network is specified at the command line.
@@ -51,6 +59,8 @@ module.exports = {
       host: "127.0.0.1",     // Localhost (default: none). Default for Ganache.
       port: 8545,            // Standard Ethereum port (default: none). Default for Ganache local blockchain.
       network_id: "*",       // Any network (default: none)
+      gasPrice: 120000000000, // 120 gwei
+      skipDryRun: false,
     },
     // Another network with more advanced options...
     // advanced: {
@@ -79,13 +89,13 @@ module.exports = {
     // }
 	ropsten: {
       provider: function() {
-        const { alchemyApiKey_ropsten, mnemonic } = require('./secrets.json');
+        const { apiKey_ropsten, mnemonic, ropsten_url} = require('./secrets.json');
         const HDWalletProvider = require('@truffle/hdwallet-provider');
-        return new HDWalletProvider(mnemonic, `https://eth-ropsten.alchemyapi.io/v2/${alchemyApiKey_ropsten}`);
+        return new HDWalletProvider(mnemonic, `${ropsten_url}${apiKey_ropsten}`);
       },
 	  network_id: 3,
 	  gasPrice: 10e9,
-	  skipDryRun: true
+	  skipDryRun: false,
 	}
 
   },
@@ -110,3 +120,8 @@ module.exports = {
     },
   },
 };
+
+function getEtherscanApiKey() {
+  const { etherscanApiKey } = require('./secrets.json');
+  return etherscanApiKey;
+}

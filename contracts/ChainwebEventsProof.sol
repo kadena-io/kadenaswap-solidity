@@ -2,6 +2,10 @@
 
 pragma solidity ^0.6.0;
 
+// TODO:
+// Twos-complement
+// Incorporating James's bytestring library for better gas use.
+// -> Decimal Type (tag 0x02 -> converting to Stu --> Integer)
 
 import '@openzeppelin/contracts/math/SafeMath.sol';
 
