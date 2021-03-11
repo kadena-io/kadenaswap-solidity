@@ -2,3 +2,8 @@
 secrets.json
 node_modules/
 *-lock.json
+
+# Coverage directory used by tools like istanbul
+coverage
+coverage.json
+coverageEnv

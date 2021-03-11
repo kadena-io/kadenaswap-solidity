@@ -12,6 +12,8 @@
   - Install the `OpenZeppelin` Contracts via: https://docs.openzeppelin.com/learn/developing-smart-contracts#using-openzeppelin-contracts. For example,
     `npm install --save-dev @openzeppelin/contracts@v3.4.0`. We're currently using Solidity 0.6 and all the OpenZeppelin v3.4 contracts used in this project compile with this version of Solidity.
   - Install Truffle's `HDwallet Provider` via https://github.com/trufflesuite/truffle/tree/master/packages/hdwallet-provider
+  - Install Pact Lang API via `npm install pact-lang-api`. The source repo can be found here: https://github.com/kadena-io/pact-lang-api
+  - Install the `solidity-coverage` plugin via: https://github.com/sc-forks/solidity-coverage. More information can be found under the "Coverage" section of https://forum.openzeppelin.com/t/test-smart-contracts-like-a-rockstar/1001.
 
 #### Services Used
 - (Optional) Set up `MetaMask` via https://metamask.io/. This will be useful in keeping track of ETH balances across different networks.
@@ -218,6 +220,38 @@ Compiling your contracts...
   0 passing (0ms)
 
 ```
+
+### Running Test Coverage Report
+The Truffle plugin `solidity-coverage` gives you a coverage report of the
+smart contracts in the repo. To run the report, do the following:
+
+```shell
+$ truffle run coverage
+```
+
+Example of report output:
+```shell
+--------------------------|----------|----------|----------|----------|----------------|
+File                      |  % Stmts | % Branch |  % Funcs |  % Lines |Uncovered Lines |
+--------------------------|----------|----------|----------|----------|----------------|
+ contracts/               |    63.13 |    53.23 |    80.95 |    63.47 |                |
+  ChainwebEventsProof.sol |    39.34 |    44.44 |    53.33 |    39.17 |... 447,487,541 |
+  ChainwebProofTest.sol   |      100 |      100 |      100 |      100 |                |
+  HeaderOracle.sol        |    93.94 |    54.55 |      100 |    94.12 |         64,117 |
+  KadenaBridgeFactory.sol |      100 |       50 |      100 |    90.91 |             71 |
+  KadenaBridgeWallet.sol  |    88.24 |       60 |       90 |    88.89 |219,225,231,232 |
+  ToptalToken.sol         |      100 |      100 |      100 |      100 |                |
+--------------------------|----------|----------|----------|----------|----------------|
+All files                 |    63.13 |    53.23 |    80.95 |    63.47 |                |
+--------------------------|----------|----------|----------|----------|----------------|
+
+> Istanbul reports written to ./coverage/ and ./coverage.json
+> solidity-coverage cleaning up, shutting down ganache server
+```
+
+You can also run `open ./coverage/index.html` to open up a more interactive report.
+
+
 ### Getting Ready for Production
 A lot of the following is abbreviated from three articles:
 - https://docs.openzeppelin.com/learn/deploying-and-interacting (make sure to see the Truffle instructions)
