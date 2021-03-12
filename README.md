@@ -251,6 +251,10 @@ All files                 |    63.13 |    53.23 |    80.95 |    63.47 |         
 
 You can also run `open ./coverage/index.html` to open up a more interactive report.
 
+Resources for understanding the coverage report:
+- https://stackoverflow.com/questions/40247508/e-and-i-symbols-in-istanbul-html-reports
+- https://stackoverflow.com/questions/41757821/what-does-1x-3x-etc-mean-in-karma-code-coverage-report-in-angular-unit-testing
+
 
 ### Getting Ready for Production
 A lot of the following is abbreviated from three articles:

@@ -96,33 +96,6 @@ library ChainwebEventsProof {
   }
 
   /**
-  * @dev Converts a sub-array of bytes into a big-endian byte integer.
-  * @param b Bytes array containing the sub-array of bytes that will be
-  *          converted into an integer.
-  * @param idx Start index of the sub-array of bytes to convert.
-  * @param sizeInBytes Size of the sub-array of bytes to convert.
-  */
- /** TODO: negative numbers **/
- function readIntBE(
-   bytes memory b,
-   uint256 idx,
-   uint256 sizeInBytes
- ) internal pure returns (uint256) {
-   uint256 value = 0;
-   uint256 k = sizeInBytes - 1;
-
-   /** TODO: WRONG this is little endian
-    **/
-   for (uint256 i = idx; i < (idx + sizeInBytes); i++) {
-     value = value + uint256(uint8(b[i]))*(2**(8*(4-(k+1))));
-     // number = number + uint(b[i])*(2**(8*(b.length-(i+1)))); big endian?
-     k -= 1;
-   }
-
-   return value;
- }
-
-  /**
   * @dev Reads a sub-array of bytes and returns it.
   * @param b Bytes array containing the sub-array of bytes to return.
   * @param idx Start index of the sub-array of bytes.
@@ -477,14 +450,6 @@ library ChainwebEventsProof {
        bytes1 nodeTag = 0x01;
        bytes32 hsh = keccak256(abi.encodePacked(nodeTag, hsh1, hsh2));
        return hsh;
-   }
-
-   /**
-   * @dev Retrieves the size of Keccak256 hashes (i.e. 32 bytes).
-   */
-   function sizeOfProofKeccak256() public pure
-     returns (uint256){
-       return 32;
    }
 
    /**

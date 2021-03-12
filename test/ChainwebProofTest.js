@@ -29,6 +29,22 @@ contract ('ChainwebProofTest', (accounts) => {
    * =========================
    **/
 
+strictHexToStringIntLE
+
+ it("Test hex to little endian integer", async () => {
+    let expectedInt1 = "43";
+        expectedHex1 = "0x2b000000";
+        actualInt1 = strictHexToStringIntLE(expectedHex1);
+
+        expectedInt2 = "-139853185";
+        expectedHex2 = "0x7F02AAF7";
+        actualInt2 = strictHexToStringIntLE(expectedHex2);
+
+    assert_(actualInt1, expectedInt1);
+    assert_(actualInt2, expectedInt2);
+
+ });
+
  it("Test base64 encode and decode helper functions", async () => {
      let expectedB64Url = "VlVm90jiVdlkQ9frX_XtVtYeTj5lTOlcVkj65jsjSUM";
          expectedStrictHex = "0x565566f748e255d96443d7eb5ff5ed56d61e4e3e654ce95c5648fae63b234943";
@@ -84,12 +100,12 @@ contract ('ChainwebProofTest', (accounts) => {
    * =========================
    **/
 
-  it("Validate converting a bytes sub-array into a little endian integer", async () => {
+  it("readIntLE: Test Solidity convert hex to little endian integers", async () => {
       // Bytes sub-array that encodes `43` (as little endian, 4 bytes)
       let encoding1 = "0x002b000000566c566d39306a6956646c6b51396672585f587456745965546a356c544f6c63566b6a36356a736a53554d";
-                   //      ^-------^ sub-array in question
+                   //      ^------^ sub-array in question
           expectedInt1 = "43";
-          startIdx1 = 1;  // based on bytes array
+          startIdx1 = 1;  // Skip `0x00` byte and start at `2b...`
           sizeInBytes1 = 4;
           parsed1 = await tester.test_readIntLE(encoding1, startIdx1, sizeInBytes1);
       assert_(parsed1.toString(), expectedInt1);
@@ -103,16 +119,22 @@ contract ('ChainwebProofTest', (accounts) => {
 
   });
 
-  it("Validate parsing for Event's Integer parameter", async () => {
-      let encoding1 = "0x01c7711ce8fe864585a63dc2580e5b000000000000000000000000000000000000";
-          expectedInt1 = "1846835937711111111111111111111111";
-          startIdx1 = 0;
-          parsed1 = await tester.test_parseIntLEParam(encoding1, startIdx1, true);
-      assert_(parsed1.toString(), expectedInt1);
+  it("parseIntLEParam", async () => {
+      let encoding = "0x01c7711ce8fe864585a63dc2580e5b000000000000000000000000000000000000";
+          expectedInt = "1846835937711111111111111111111111";
+
+          parsedWithTag = await tester.test_parseIntLEParam(encoding, 0, true);
+
+          // skip the tag (0x01 = 1 byte), hence start index passed is 1
+          encoding2 = "0xc7711ce8fe864585a63dc2580e5b000000000000000000000000000000000000";
+          parsedWithoutTag = await tester.test_parseIntLEParam(encoding, 1, false);
+
+      assert_(parsedWithTag.toString(), expectedInt);
+      assert_(parsedWithoutTag.toString(), expectedInt);
 
   });
 
-  it("Validate parsing for Event's ByteString parameter", async () => {
+  it("parseBytesParam", async () => {
       // Encodes request key "VlVm90jiVdlkQ9frX_XtVtYeTj5lTOlcVkj65jsjSUM"
       let rk = "VlVm90jiVdlkQ9frX_XtVtYeTj5lTOlcVkj65jsjSUM";
           expectedParsing = base64UrlToStrictHex(rk);
@@ -123,12 +145,291 @@ contract ('ChainwebProofTest', (accounts) => {
       assert_(actualParsing, expectedParsing);
   });
 
-  it("Validate parsing for Event's ByteString parameter", async () => {
-      // Encodes request key "VlVm90jiVdlkQ9frX_XtVtYeTj5lTOlcVkj65jsjSUM"
-      let encoding1 = "0x002b000000566c566d39306a6956646c6b51396672585f587456745965546a356c544f6c63566b6a36356a736a53554d";
-          expectedHex1 = "0x566c566d39306a6956646c6b51396672585f587456745965546a356c544f6c63566b6a36356a736a53554d";
-          parsed1 = await tester.test_parseBytesParam(encoding1, 0);
-      assert(parsed1 == expectedHex1, "Case 1: Failed to decode bytes");
+  it("parseParam", async () => {
+      // When param is a ByteString (tag: `0x00`)
+      let rk = "VlVm90jiVdlkQ9frX_XtVtYeTj5lTOlcVkj65jsjSUM";
+          expectedByteString = base64UrlToStrictHex(rk);
+          encodingByteString = "0x0020000000565566f748e255d96443d7eb5ff5ed56d61e4e3e654ce95c5648fae63b234943";
+          actualByteStringArr = await tester.test_parseParam(encodingByteString, 0);
+          actualByteStringType = actualByteStringArr[0];
+          actualByteStringBytes = actualByteStringArr[1];
+
+      assert_(actualByteStringType.toString(), "0");
+      assert_(actualByteStringBytes, expectedByteString);
+
+      // When param is an Integer (tag: `0x01`)
+      let encodingInt = "0x01c7711ce8fe864585a63dc2580e5b000000000000000000000000000000000000";
+          expectedHexWithoutTag = "0xc7711ce8fe864585a63dc2580e5b000000000000000000000000000000000000";
+          expectedInt = "1846835937711111111111111111111111";
+          actualIntArr = await tester.test_parseParam(encodingInt, 0);
+          actualIntType = actualIntArr[0];
+          actualIntBytes = actualIntArr[1];
+          actualParsedInt = await tester.test_parseIntLEParam(actualIntBytes, 0, false);
+
+      assert_(actualIntType.toString(), "1");
+      assert_(actualIntBytes, expectedHexWithoutTag);
+      assert_(actualParsedInt.toString(), expectedInt);
+
+  });
+
+  it("parseParamsArray", async () => {
+    let encoding = "0x02000000000500000068656c6c6f0119af056a34fcf2ee146ed16e5e00000000000000000000000000000000000000";
+        // First param is a ByteString
+        expectedFirstParamTypeBS = "0";
+        expectedFirstParamValueBS = web3.utils.toHex("hello");
+
+        // Second param is an Integer
+        expectedSecondParamTypeInt = "1";
+        expectedSecondParamValueInt = "7481743812763961247612973461273";
+
+        actualParamArr = await tester.test_parseParamsArray_take2(encoding, 0);
+        actualFirstParamTypeBS = actualParamArr[0];
+        actualFirstParamValueBS = actualParamArr[1];
+        actualSecondParamTypeInt = actualParamArr[2];
+        actualSecondParamValueIntBytes = actualParamArr[3];
+        actualSecondParamValueInt = await tester.test_parseIntLEParam(actualSecondParamValueIntBytes, 0, false);
+
+    assert_(actualFirstParamTypeBS, expectedFirstParamTypeBS);
+    assert_(actualFirstParamValueBS, expectedFirstParamValueBS);
+    assert_(actualSecondParamTypeInt, expectedSecondParamTypeInt);
+    assert_(actualSecondParamValueInt, expectedSecondParamValueInt);
+
+  });
+
+  it("parseEvent", async () => {
+    let encoding = "0x000d000000736f6d654576656e744e616d650013000000757365722e736f6d654d6f64756c654e616d6500200000006805b1b8e047077c5f04c0aa78568ee18ef8a87a9d4c6a0cb56821ae78b7988402000000000500000068656c6c6f0119af056a34fcf2ee146ed16e5e00000000000000000000000000000000000000";
+
+        expectedEventName = web3.utils.toHex("someEventName");
+        expectedEventModule = web3.utils.toHex("user.someModuleName");
+        expectedEventModuleHash = base64UrlToStrictHex("aAWxuOBHB3xfBMCqeFaO4Y74qHqdTGoMtWghrni3mIQ");
+
+        // First param is a ByteString
+        expectedFirstParamTypeBS = "0";
+        expectedFirstParamValueBS = web3.utils.toHex("hello");
+
+        // Second param is an Integer
+        expectedSecondParamTypeInt = "1";
+        expectedSecondParamValueInt = "7481743812763961247612973461273";
+
+        actualEventArr = await tester.test_parseEvent_take2Params(encoding, 0);
+        actualEventName = actualEventArr[0];
+        actualEventModule = actualEventArr[1];
+        actualEventModuleHash = actualEventArr[2];
+
+        actualFirstParamTypeBS = actualEventArr[3];
+        actualFirstParamValueBS = actualEventArr[4];
+
+        actualSecondParamTypeInt = actualEventArr[5];
+        actualSecondParamValueIntBytes = actualEventArr[6];
+        actualSecondParamValueInt = await tester.test_parseIntLEParam(actualSecondParamValueIntBytes, 0, false);
+
+    assert(expectedEventName == actualEventName,
+      "Event name doesn't match");
+    assert(expectedEventModule == actualEventModule,
+      "Event module doesn't match");
+    assert(expectedEventModuleHash == actualEventModuleHash,
+      "Event module hash doesn't match");
+
+    assert(expectedFirstParamTypeBS == actualFirstParamTypeBS,
+      "Event first param type doesn't match");
+    assert(expectedFirstParamValueBS == actualFirstParamValueBS,
+      "Event first param value doesn't match");
+
+    assert(expectedSecondParamTypeInt == actualSecondParamTypeInt,
+      "Event second param type doesn't match");
+    assert(expectedSecondParamValueInt == actualSecondParamValueInt,
+      "Event second param value doesn't match");
+
+  });
+
+  it("parseEventsArray", async () => {
+    let encoding = "0x02000000000d000000736f6d654576656e744e616d650013000000757365722e736f6d654d6f64756c654e616d6500200000006805b1b8e047077c5f04c0aa78568ee18ef8a87a9d4c6a0cb56821ae78b7988402000000000500000068656c6c6f0119af056a34fcf2ee146ed16e5e000000000000000000000000000000000000000012000000736f6d654f746865724576656e744e616d650013000000736f6d654f746865724d6f64756c654e616d650020000000db302118cd981eebbdea5b1575ca2e03106f3910b546bc5834f15b93cc6d79a6020000000005000000776f726c64000400000077696465";
+
+        //-- First Event --//
+        expectedEventName1 = web3.utils.toHex("someEventName");
+        expectedEventModule1 = web3.utils.toHex("user.someModuleName");
+        expectedEventModuleHash1 = base64UrlToStrictHex("aAWxuOBHB3xfBMCqeFaO4Y74qHqdTGoMtWghrni3mIQ");
+
+        // First Event: First param is a ByteString
+        expectedFirstParamTypeBS1 = "0";
+        expectedFirstParamValueBS1 = web3.utils.toHex("hello");
+
+        // First Event: Second param is an Integer
+        expectedSecondParamTypeInt1 = "1";
+        expectedSecondParamValueInt1 = "7481743812763961247612973461273";
+
+        //-- Second Event --//
+        expectedEventName2 = web3.utils.toHex("someOtherEventName");
+        expectedEventModule2 = web3.utils.toHex("someOtherModuleName");
+        expectedEventModuleHash2 = base64UrlToStrictHex("2zAhGM2YHuu96lsVdcouAxBvORC1RrxYNPFbk8xteaY");
+
+        // Second Event: First param is a ByteString
+        expectedFirstParamTypeBS2 = "0";
+        expectedFirstParamValueBS2 = web3.utils.toHex("world");
+
+        // Second Event: Second param is an Integer
+        expectedSecondParamTypeBS2 = "0";
+        expectedSecondParamValueBS2 = web3.utils.toHex("wide");
+
+        actualEventArr1 = await tester.test_parseEventsArray_take_ith(encoding, 0, 0);
+        actualEventName1 = actualEventArr1[0];
+        actualEventModule1 = actualEventArr1[1];
+        actualEventModuleHash1 = actualEventArr1[2];
+
+        actualFirstParamTypeBS1 = actualEventArr1[3];
+        actualFirstParamValueBS1 = actualEventArr1[4];
+
+        actualSecondParamTypeInt1 = actualEventArr1[5];
+        actualSecondParamValueIntBytes1 = actualEventArr1[6];
+        actualSecondParamValueInt1 = await tester.test_parseIntLEParam(actualSecondParamValueIntBytes, 0, false);
+
+
+        actualEventArr2 = await tester.test_parseEventsArray_take_ith(encoding, 0, 1);
+        actualEventName2 = actualEventArr2[0];
+        actualEventModule2 = actualEventArr2[1];
+        actualEventModuleHash2 = actualEventArr2[2];
+
+        actualFirstParamTypeBS2 = actualEventArr2[3];
+        actualFirstParamValueBS2 = actualEventArr2[4];
+
+        actualSecondParamTypeBS2 = actualEventArr2[5];
+        actualSecondParamValueBS2 = actualEventArr2[6];
+
+    // First Event //
+    assert(expectedEventName1 == actualEventName1,
+      "Event name doesn't match");
+    assert(expectedEventModule1 == actualEventModule1,
+      "Event module doesn't match");
+    assert(expectedEventModuleHash1 == actualEventModuleHash1,
+      "Event module hash doesn't match");
+
+    assert(expectedFirstParamTypeBS1 == actualFirstParamTypeBS1,
+      "Event first param type doesn't match");
+    assert(expectedFirstParamValueBS1 == actualFirstParamValueBS1,
+      "Event first param value doesn't match");
+
+    assert(expectedSecondParamTypeInt1 == actualSecondParamTypeInt1,
+      "Event second param type doesn't match");
+    assert(expectedSecondParamValueInt1 == actualSecondParamValueInt1,
+      "Event second param value doesn't match");
+
+    // Second Event //
+    assert(expectedEventName2 == actualEventName2,
+      "Event name doesn't match");
+    assert(expectedEventModule2 == actualEventModule2,
+      "Event module doesn't match");
+    assert(expectedEventModuleHash2 == actualEventModuleHash2,
+      "Event module hash doesn't match");
+
+    assert(expectedFirstParamTypeBS2 == actualFirstParamTypeBS2,
+      "Event first param type doesn't match");
+    assert(expectedFirstParamValueBS2 == actualFirstParamValueBS2,
+      "Event first param value doesn't match");
+
+    assert(expectedSecondParamTypeBS2 == actualSecondParamTypeBS2,
+      "Event second param type doesn't match");
+    assert(expectedSecondParamValueBS2 == actualSecondParamValueBS2,
+      "Event second param value doesn't match");
+
+  });
+
+  //This test gives me stack too deep error and just hangs the test
+
+  it("parseProofSubject", async () => {
+    let encoding = "0x0020000000009c75810811584fb0a122eae771622113d6729bb3d8f78162dc9b8660e0aed202000000000d000000736f6d654576656e744e616d650013000000757365722e736f6d654d6f64756c654e616d6500200000006805b1b8e047077c5f04c0aa78568ee18ef8a87a9d4c6a0cb56821ae78b7988402000000000500000068656c6c6f0119af056a34fcf2ee146ed16e5e000000000000000000000000000000000000000012000000736f6d654f746865724576656e744e616d650013000000736f6d654f746865724d6f64756c654e616d650020000000db302118cd981eebbdea5b1575ca2e03106f3910b546bc5834f15b93cc6d79a6020000000005000000776f726c64000400000077696465";
+
+        expectedReqKey = base64UrlToStrictHex("AJx1gQgRWE-woSLq53FiIRPWcpuz2PeBYtybhmDgrtI");
+
+        //-- First Event --//
+        expectedEventName1 = web3.utils.toHex("someEventName");
+        expectedEventModule1 = web3.utils.toHex("user.someModuleName");
+        expectedEventModuleHash1 = base64UrlToStrictHex("aAWxuOBHB3xfBMCqeFaO4Y74qHqdTGoMtWghrni3mIQ");
+
+        // First Event: First param is a ByteString
+        expectedFirstParamTypeBS1 = "0";
+        expectedFirstParamValueBS1 = web3.utils.toHex("hello");
+
+        // First Event: Second param is an Integer
+        expectedSecondParamTypeInt1 = "1";
+        expectedSecondParamValueInt1 = "7481743812763961247612973461273";
+
+        //-- Second Event --//
+        expectedEventName2 = web3.utils.toHex("someOtherEventName");
+        expectedEventModule2 = web3.utils.toHex("someOtherModuleName");
+        expectedEventModuleHash2 = base64UrlToStrictHex("2zAhGM2YHuu96lsVdcouAxBvORC1RrxYNPFbk8xteaY");
+
+        // Second Event: First param is a ByteString
+        expectedFirstParamTypeBS2 = "0";
+        expectedFirstParamValueBS2 = web3.utils.toHex("world");
+
+        // Second Event: Second param is an Integer
+        expectedSecondParamTypeBS2 = "0";
+        expectedSecondParamValueBS2 = web3.utils.toHex("wide");
+
+        actualEventArr1 = await tester.test_parseProofSubject_take_ith(encoding, 0);
+        actualReqKey = actualEventArr1[0];
+        actualEventName1 = actualEventArr1[1];
+        actualEventModule1 = actualEventArr1[2];
+        actualEventModuleHash1 = actualEventArr1[3];
+
+        actualFirstParamTypeBS1 = actualEventArr1[4];
+        actualFirstParamValueBS1 = actualEventArr1[5];
+
+        actualSecondParamTypeInt1 = actualEventArr1[6];
+        actualSecondParamValueIntBytes1 = actualEventArr1[7];
+        actualSecondParamValueInt1 = await tester.test_parseIntLEParam(actualSecondParamValueIntBytes, 0, false);
+
+
+        actualEventArr2 = await tester.test_parseProofSubject_take_ith(encoding, 1);
+        actualEventName2 = actualEventArr2[1];  // skip req key return
+        actualEventModule2 = actualEventArr2[2];
+        actualEventModuleHash2 = actualEventArr2[3];
+
+        actualFirstParamTypeBS2 = actualEventArr2[4];
+        actualFirstParamValueBS2 = actualEventArr2[5];
+
+        actualSecondParamTypeBS2 = actualEventArr2[6];
+        actualSecondParamValueBS2 = actualEventArr2[7];
+
+    assert(expectedReqKey == actualReqKey,
+      "Request Key doesn't match");
+
+    // First Event //
+    assert(expectedEventName1 == actualEventName1,
+      "Event name doesn't match");
+    assert(expectedEventModule1 == actualEventModule1,
+      "Event module doesn't match");
+    assert(expectedEventModuleHash1 == actualEventModuleHash1,
+      "Event module hash doesn't match");
+
+    assert(expectedFirstParamTypeBS1 == actualFirstParamTypeBS1,
+      "Event first param type doesn't match");
+    assert(expectedFirstParamValueBS1 == actualFirstParamValueBS1,
+      "Event first param value doesn't match");
+
+    assert(expectedSecondParamTypeInt1 == actualSecondParamTypeInt1,
+      "Event second param type doesn't match");
+    assert(expectedSecondParamValueInt1 == actualSecondParamValueInt1,
+      "Event second param value doesn't match");
+
+    // Second Event //
+    assert(expectedEventName2 == actualEventName2,
+      "Event name doesn't match");
+    assert(expectedEventModule2 == actualEventModule2,
+      "Event module doesn't match");
+    assert(expectedEventModuleHash2 == actualEventModuleHash2,
+      "Event module hash doesn't match");
+
+    assert(expectedFirstParamTypeBS2 == actualFirstParamTypeBS2,
+      "Event first param type doesn't match");
+    assert(expectedFirstParamValueBS2 == actualFirstParamValueBS2,
+      "Event first param value doesn't match");
+
+    assert(expectedSecondParamTypeBS2 == actualSecondParamTypeBS2,
+      "Event second param type doesn't match");
+    assert(expectedSecondParamValueBS2 == actualSecondParamValueBS2,
+      "Event second param value doesn't match");
+
   });
 
   /* =========================
@@ -258,7 +559,9 @@ function makeNodeHash(hexA, hexB) {
  return hash;  // in hex string
 }
 
-// A strict hex is prefixed with 0x
+// A strict hex is prefixed with 0x.
+// NOTE: Solidity functions with parameter of type bytes expectes
+// hex strings that are strict when using web3.
 function strictHexToBase64Url(strictHex) {
   let bytes = web3.utils.hexToBytes(strictHex);
       base64Url = pact_lang.crypto.base64UrlEncode(bytes);
@@ -270,4 +573,11 @@ function base64UrlToStrictHex(base64Url) {
       bytes = pact_lang.crypto.hexToBin(hex);
       strictHex = web3.utils.bytesToHex(bytes);
   return strictHex;
+}
+
+function strictHexToStringIntLE(strictHex) {
+  let bytes = new Uint8Array(web3.utils.hexToBytes(strictHex));
+      hex = pact_lang.crypto.binToHex(bytes);
+      intLE = Buffer.from(hex, 'hex').readInt32LE();
+  return String(intLE);
 }
