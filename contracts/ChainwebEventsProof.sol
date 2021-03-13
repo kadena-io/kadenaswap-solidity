@@ -3,9 +3,7 @@
 pragma solidity ^0.6.0;
 
 // TODO:
-// Twos-complement
-// Incorporating James's bytestring library for better gas use.
-// -> Decimal Type (tag 0x02 -> converting to Stu --> Integer)
+// - Twos-complement implementation
 
 import '@openzeppelin/contracts/math/SafeMath.sol';
 import {TypedMemView} from "@summa-tx/memview-sol/contracts/TypedMemView.sol";
@@ -113,7 +111,7 @@ library ChainwebEventsProof {
     uint256 idx,
     uint256 sizeInBytes
   ) internal view returns (bytes memory) {
-
+    require(b.length - idx >= sizeInBytes, "Trying to read bytes not present");
     bytes29 v = b.ref(0);
     bytes29 slice = v.slice(idx, sizeInBytes, 0);
     return TypedMemView.clone(slice);
@@ -132,7 +130,7 @@ library ChainwebEventsProof {
     for (uint256 i = idx; i < (idx + sizeInBytes); i++) {
       value[j] = b[i];
       j += 1;
-
+    }
     return value;
   }*/
 
@@ -431,7 +429,7 @@ library ChainwebEventsProof {
   * @param b Bytes array containing all of the proof subject.
   *
   * The subject will have the following format:
-  * |-- n bytes (a) --||-- 1st m bytes (b) --|...|-- jth o bytes (b) --|
+  * |--0x0030--||-- n bytes (a) --||-- 1st m bytes (b) --|...|-- jth o bytes (b) --|
   *
   * (a): The first n bytes encodes as a ByteString type the request key of the
   *      transaction emitting the events.
@@ -447,6 +445,12 @@ library ChainwebEventsProof {
   function parseProofSubject(bytes memory b) internal view
     returns (bytes memory, Event[] memory){
       uint256 currIdx = 0;
+
+      // Verify prefix tag (TODO: verify with Lars if this is correct)
+      require(b[0] == 0x00, "First byte of subject must be `0x00`");
+      currIdx += 1;
+      require(b[1] == 0x30, "Second byte of subject must be `0x30`");
+      currIdx += 1;
 
       uint256 reqKeyEndIdx;
       bytes memory reqKey;

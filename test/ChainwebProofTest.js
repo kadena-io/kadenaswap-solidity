@@ -23,10 +23,7 @@ let tester;
    of parameters `test_runMerkleProofKeccak256` expects. For example:
    "AAAAAAAAAAAAAAAA" -> proofPathLength = 0, proofPathHashes = [], proofPathSides = []
    See `Validate actual Chainweb Merkle proof` for more concrete example.
- - Investigate why the use of `test_parseEventsArray_take_ith` in `real world example` test causes an out of gas
-   error from truffle.
- - Add test for checking parsing of Decimal param.
- - Add test for checking parsing of ModRef param.
+ - When Twos-complement implemented in `ChainwebEventsProof`, add tests for it.
  */
 
 
@@ -181,6 +178,27 @@ contract ('ChainwebProofTest', (accounts) => {
       assert_(actualIntType.toString(), "1");
       assert_(actualIntBytes, expectedHexWithoutTag);
       assert_(actualParsedInt.toString(), expectedInt);
+
+      let encodingDecimal = "0x020000878b866af510000000000000000000000000000000000000000000000000";
+          expectedDecimalBytes = "0x0000878b866af510000000000000000000000000000000000000000000000000"
+          expectedDecimalInt = "1222000000000000000";
+          actualDecimalArr = await tester.test_parseParam(encodingDecimal, 0);
+          actualDecimalType = actualDecimalArr[0];
+          actualDecimalBytes = actualDecimalArr[1];
+          actualDecimalInt = await tester.test_parseIntLEParam(actualDecimalBytes, 0, false);
+
+      assert_(actualDecimalType.toString(), "2");
+      assert_(actualDecimalBytes, expectedDecimalBytes);
+      assert_(actualDecimalInt.toString(), expectedDecimalInt);
+
+      let encodingModRef = "0x030f000000757365722e736f6d654d6f64526566";
+          expectedModRefBytes = web3.utils.toHex("user.someModRef");
+          actualModRefArr = await tester.test_parseParam(encodingModRef, 0);
+          actualModRefType = actualModRefArr[0];
+          actualModRefBytes = actualModRefArr[1];
+
+      assert_(actualModRefType, "3");
+      assert_(actualModRefBytes, expectedModRefBytes);
 
   });
 
@@ -345,10 +363,9 @@ contract ('ChainwebProofTest', (accounts) => {
 
   });
 
-  //This test gives me stack too deep error and just hangs the test
-
   it("parseProofSubject", async () => {
-    let encoding = "0x20000000009c75810811584fb0a122eae771622113d6729bb3d8f78162dc9b8660e0aed2020000000d000000736f6d654576656e744e616d6513000000757365722e736f6d654d6f64756c654e616d65200000006805b1b8e047077c5f04c0aa78568ee18ef8a87a9d4c6a0cb56821ae78b7988402000000000500000068656c6c6f0119af056a34fcf2ee146ed16e5e0000000000000000000000000000000000000012000000736f6d654f746865724576656e744e616d6513000000736f6d654f746865724d6f64756c654e616d6520000000db302118cd981eebbdea5b1575ca2e03106f3910b546bc5834f15b93cc6d79a6020000000005000000776f726c64000400000077696465";
+    // TODO: Verify that subject prefixed with `0x0030`
+    let encoding = "0x003020000000009c75810811584fb0a122eae771622113d6729bb3d8f78162dc9b8660e0aed2020000000d000000736f6d654576656e744e616d6513000000757365722e736f6d654d6f64756c654e616d65200000006805b1b8e047077c5f04c0aa78568ee18ef8a87a9d4c6a0cb56821ae78b7988402000000000500000068656c6c6f0119af056a34fcf2ee146ed16e5e0000000000000000000000000000000000000012000000736f6d654f746865724576656e744e616d6513000000736f6d654f746865724d6f64756c654e616d6520000000db302118cd981eebbdea5b1575ca2e03106f3910b546bc5834f15b93cc6d79a6020000000005000000776f726c64000400000077696465";
 
         expectedReqKey = base64UrlToStrictHex("AJx1gQgRWE-woSLq53FiIRPWcpuz2PeBYtybhmDgrtI");
 
@@ -560,10 +577,20 @@ contract ('ChainwebProofTest', (accounts) => {
         expectedRoot = base64UrlToStrictHex("YjoxLRFXZcxOPRBX3cbDgvYiTriWSzfU4cxvtKDbjek");
 
         // Validates proof subject
-        // IMPORTANT: This causes an out of gas error when running `truffle test`
-        //actualEventArr1 = await tester.test_parseEventsArray_take_ith(proofSubjHex, 0, 0, {from: other});
+        actualEventArr1 = await tester.test_parseProofSubject_take_ith(proofSubjHex, 0);
+        actualReqKey = actualEventArr1[0];
+        actualEventName1 = actualEventArr1[1];  // TODO: Verify output
+        actualEventModule1 = actualEventArr1[2]; // TODO: Verify output
+        actualEventModuleHash1 = actualEventArr1[3]; // TODO: Verify output
+
+        actualFirstParamType1 = actualEventArr1[4]; // TODO: Verify output
+        actualFirstParamValue1 = actualEventArr1[5]; // TODO: Verify output
+
+        actualSecondParamType1 = actualEventArr1[6]; // TODO: Verify output
+        actualSecondParamValue1 = actualEventArr1[7]; // TODO: Verify output
 
         // Performs inclusion proof
+        // Since the object proof is "AAAAAAAAAAAAAAAA" (all zeros), there's no proof path.
         actualRoot = await tester.test_runMerkleProofKeccak256(
               proofSubjHex,   // subject in hex
               0, // proof path step count
@@ -571,8 +598,10 @@ contract ('ChainwebProofTest', (accounts) => {
               [], // proof path sides (adds path proof to right)
               {from: creator});
 
-    console.log("Validate subject structure");
-    assert_(actualRoot, expectedRoot)
+    assert_(actualReqKey, expectedReqKey);
+    // TODO: Verify that the first Event's parameters are what's expected
+    // TODO: Verify that the rest of the events
+    assert_(actualRoot, expectedRoot);
 
 
   });

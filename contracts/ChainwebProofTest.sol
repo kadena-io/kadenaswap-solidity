@@ -92,6 +92,7 @@ contract ChainwebProofTest {
               secondParam.paramType, secondParam.paramValue);
   }
 
+  // Returns only the ith Event and only its first two parameters
   function test_parseEventsArray_take_ith(
     bytes memory b,
     uint256 idx,
@@ -129,12 +130,7 @@ contract ChainwebProofTest {
         secondParam.paramType, secondParam.paramValue);
   }
 
-  /*
-  NOTE: This gave me stack too deep errors when I tried to add more local variables.
-  I also wonder if the proof subj gets big enough if we'll see some of these stack
-  errors again since we're copying bytestrings naively. Should incorporate the following:
-  https://github.com/summa-tx/memview-sol
-  */
+  // Returns only the ith Event and only its first two parameters
   function test_parseProofSubject_take_ith(
     bytes memory b,
     uint256 targetEventIdx) public view
