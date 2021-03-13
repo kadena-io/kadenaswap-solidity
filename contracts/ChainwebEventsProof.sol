@@ -8,6 +8,7 @@ pragma solidity ^0.6.0;
 // -> Decimal Type (tag 0x02 -> converting to Stu --> Integer)
 
 import '@openzeppelin/contracts/math/SafeMath.sol';
+import {TypedMemView} from "@summa-tx/memview-sol/contracts/TypedMemView.sol";
 
 /**
  * @title ChainwebProof
@@ -15,16 +16,22 @@ import '@openzeppelin/contracts/math/SafeMath.sol';
  */
 library ChainwebEventsProof {
   using SafeMath for uint256;
+  using TypedMemView for bytes;
+  using TypedMemView for bytes29;
 
   /**
    * @dev Represents all possible Chainweb Event parameter types.
    * NOTE: Order of enums also corresponds to these type's respective tags
    *       when they are encoded in Chainweb binary representation.
    *       For example, all ByteString parameters start with the `0x00` byte tag.
+   *
+   * NOTE: Decimals are shifted by 18 decimal points before being encoded as integer.
    */
   enum ParameterType {
     Bytes,  // 0x0
-    Integer  // 0x1
+    Integer,  // 0x1
+    Decimal, // 0x2
+    ModRef // 0x3
   }
 
   /**
@@ -105,17 +112,29 @@ library ChainwebEventsProof {
     bytes memory b,
     uint256 idx,
     uint256 sizeInBytes
-  ) internal pure returns (bytes memory) {
+  ) internal view returns (bytes memory) {
+
+    bytes29 v = b.ref(0);
+    bytes29 slice = v.slice(idx, sizeInBytes, 0);
+    return TypedMemView.clone(slice);
+  }
+
+  /**
+  // NOTE: This is the previous function that doesn't use James's library
+  function readByteString(
+    bytes memory b,
+    uint256 idx,
+    uint256 sizeInBytes
+  ) internal view returns (bytes memory) {
     bytes memory value = new bytes(sizeInBytes);
     uint256 j = 0;
 
     for (uint256 i = idx; i < (idx + sizeInBytes); i++) {
       value[j] = b[i];
       j += 1;
-    }
 
     return value;
-  }
+  }*/
 
   /* =========================
    *  EVENT PARSING FUNCTIONS
@@ -141,7 +160,7 @@ library ChainwebEventsProof {
   * @return parsed Just the parsed array of bytes.
   *
   */
-  function parseBytesParam(bytes memory b, uint256 idx, bool isTagged) public pure
+  function parseBytesParam(bytes memory b, uint256 idx, bool isTagged) public view
     returns (uint256, bytes memory){
       uint256 currIdx = idx;
 
@@ -226,7 +245,7 @@ library ChainwebEventsProof {
   *               type tags and size encodings for ByteString and Integer types.
   *
   */
-  function parseParam(bytes memory b, uint256 idx) internal pure
+  function parseParam(bytes memory b, uint256 idx) internal view
     returns (uint256, Parameter memory) {
       uint256 currIdx = idx;
 
@@ -236,7 +255,7 @@ library ChainwebEventsProof {
       if (tag == uint256(ParameterType.Bytes)) {
         uint256 paramEndIdx;
         bytes memory parsed;
-        // `parseBytesParam` expects the tag byte
+        // `parseBytesParam` expects the tag byte for ByteString
         (paramEndIdx, parsed) = parseBytesParam(b, currIdx, true);
         currIdx = paramEndIdx;
         Parameter memory param = Parameter(ParameterType.Bytes, parsed);
@@ -252,6 +271,24 @@ library ChainwebEventsProof {
         bytes memory intBytes = readByteString(b, currIdx, sizeOfParamInt());
         currIdx += sizeOfParamInt();
         Parameter memory param = Parameter(ParameterType.Integer, intBytes);
+        return (currIdx, param);
+      }
+      else if (tag == uint256(ParameterType.Decimal)) {
+        currIdx += 1;  // skips over tag byte
+
+        bytes memory intBytes = readByteString(b, currIdx, sizeOfParamInt());
+        currIdx += sizeOfParamInt();
+        Parameter memory param = Parameter(ParameterType.Decimal, intBytes);
+        return (currIdx, param);
+      }
+      else if (tag == uint256(ParameterType.ModRef)) {
+        currIdx += 1;  // skips over tag byte
+
+        uint256 paramEndIdx;
+        bytes memory parsed;
+        (paramEndIdx, parsed) = parseBytesParam(b, currIdx, false);
+        currIdx = paramEndIdx;
+        Parameter memory param = Parameter(ParameterType.ModRef, parsed);
         return (currIdx, param);
       }
       else {
@@ -276,7 +313,7 @@ library ChainwebEventsProof {
   * @return params The Parameter array containing the parsed parameters.
   *
   */
-  function parseParamsArray(bytes memory b, uint256 idx) internal pure
+  function parseParamsArray(bytes memory b, uint256 idx) internal view
     returns (uint256, Parameter[] memory) {
       uint256 currIdx = idx;
 
@@ -321,7 +358,7 @@ library ChainwebEventsProof {
   * @return _event The Event struct containing the parsed event fields.
   *
   */
-  function parseEvent(bytes memory b, uint256 idx) internal pure
+  function parseEvent(bytes memory b, uint256 idx) internal view
     returns (uint256, Event memory) {
       uint256 currIdx = idx;
 
@@ -367,7 +404,7 @@ library ChainwebEventsProof {
   * @return events The Event array containing the parsed events.
   *
   */
-  function parseEventsArray(bytes memory b, uint256 idx) internal pure
+  function parseEventsArray(bytes memory b, uint256 idx) internal view
     returns (uint256, Event[] memory) {
       uint256 currIdx = idx;
 
@@ -407,7 +444,7 @@ library ChainwebEventsProof {
   * @return events The Event array containing the parsed events.
   *
   */
-  function parseProofSubject(bytes memory b) internal pure
+  function parseProofSubject(bytes memory b) internal view
     returns (bytes memory, Event[] memory){
       uint256 currIdx = 0;
 

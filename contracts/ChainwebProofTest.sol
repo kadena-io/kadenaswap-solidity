@@ -25,7 +25,7 @@ contract ChainwebProofTest {
       return v;
   }
 
-  function test_parseBytesParam(bytes memory b, uint256 idx, bool isTagged) public pure
+  function test_parseBytesParam(bytes memory b, uint256 idx, bool isTagged) public view
     returns (bytes memory){
       uint256 endIdx;
       bytes memory parsed;
@@ -33,7 +33,7 @@ contract ChainwebProofTest {
       return parsed;
   }
 
-  function test_parseParam(bytes memory b, uint256 idx) public pure
+  function test_parseParam(bytes memory b, uint256 idx) public view
     returns (ChainwebEventsProof.ParameterType, bytes memory){
       uint256 endIdx;
       ChainwebEventsProof.Parameter memory param;
@@ -43,7 +43,7 @@ contract ChainwebProofTest {
 
   // Returns only the first two elements of the array
   // Motivation: Solidity doesn't allow returning an array of `bytes`
-  function test_parseParamsArray_take2(bytes memory b, uint256 idx) public pure
+  function test_parseParamsArray_take2(bytes memory b, uint256 idx) public view
     returns (
       ChainwebEventsProof.ParameterType,
       bytes memory,
@@ -64,7 +64,7 @@ contract ChainwebProofTest {
               secondParam.paramType, secondParam.paramValue);
   }
 
-  function test_parseEvent_take2Params(bytes memory b, uint256 idx) public pure
+  function test_parseEvent_take2Params(bytes memory b, uint256 idx) public view
     returns (
       bytes memory,
       bytes memory,
@@ -95,7 +95,7 @@ contract ChainwebProofTest {
   function test_parseEventsArray_take_ith(
     bytes memory b,
     uint256 idx,
-    uint256 targetEventIdx) public pure
+    uint256 targetEventIdx) public view
     returns (
       bytes memory,
       bytes memory,
@@ -137,7 +137,7 @@ contract ChainwebProofTest {
   */
   function test_parseProofSubject_take_ith(
     bytes memory b,
-    uint256 targetEventIdx) public pure
+    uint256 targetEventIdx) public view
     returns (
       bytes memory,
       bytes memory,

@@ -6,6 +6,7 @@ const base64url = require("base64-url");
 let ethToSend = web3.utils.toWei("1", "ether");
 let someGas = web3.utils.toWei("0.01", "ether");
 let creator;
+let other;
 let tester;
 
 /* =========================
@@ -16,11 +17,24 @@ let tester;
  * =========================
  **/
 
+ /**
+ TODO:
+ - Create JS function that takes proof object hex and converts it into the array
+   of parameters `test_runMerkleProofKeccak256` expects. For example:
+   "AAAAAAAAAAAAAAAA" -> proofPathLength = 0, proofPathHashes = [], proofPathSides = []
+   See `Validate actual Chainweb Merkle proof` for more concrete example.
+ - Investigate why the use of `test_parseEventsArray_take_ith` in `real world example` test causes an out of gas
+   error from truffle.
+ - Add test for checking parsing of Decimal param.
+ - Add test for checking parsing of ModRef param.
+ */
+
 
 contract ('ChainwebProofTest', (accounts) => {
 
     before(async () => {
         creator = accounts[0];
+        other = accounts[2];
         tester = await ChainwebProofTest.new({from: creator});
 	});
 
@@ -462,7 +476,8 @@ contract ('ChainwebProofTest', (accounts) => {
             "Expected subject hash does NOT match leaf hash calculated by solidity contract");
 
       // Parsed version of "000000020000000000000001009722201502e620d70d78ee63045f3493812c206b988cbbe76c28918a7364fdbd014c89fefa814dbe46b640ca2ffb4682a1eaad32985c6604e98cc0a2fd76e49550"
-      /* NOTE: The original proof object is structured as follows:
+      /** NOTE: The original proof object is structured as follows:
+      * TODO: Create function that uses JS to convert the original hex into this structure.
       * |-- 4 bytes (a) --||-- 8 bytes (b) --||-- (c) .. --|
       *  (a): The first 4 bytes encodes the number of proof steps
       *       as a big endian value.
@@ -523,6 +538,43 @@ contract ('ChainwebProofTest', (accounts) => {
          BA.convertToBase @BA.Bytes BA.Base16 $ encodeMerkleRoot (merkleRoot t) :: BA.Bytes
          // "3f6c2d6d0c2fcd67795ea50af0dc85c8e2df8832efe3c49e36d8fe2e71bcc07b"
       */
+  });
+
+  it("real world example: ", async () => {
+    /* To replicate:
+    $ curl -s "https://us-east1.api.chainweb.com/chainweb/0.0/mainnet01/chain/1/pact/spv2" -XPOST -H 'content-type: application/json' -d '{ "subjectIdentifier" : { "type":"events", "chain":1, "requestKey": "QiX2nIzoq21HoA7Hiq2Rjkx5Nl7jD-l4nUGOjsz8aPA"}, "minimalProofDepth": 3, "algorithm": "Keccak_256"}'
+    */
+    let {subject, object} = {
+          "subject": {
+            "input": "ADAgAAAAQiX2nIzoq21HoA7Hiq2Rjkx5Nl7jD-l4nUGOjsz8aPAEAAAACAAAAFRSQU5TRkVSDAAAAGtzd2FwLmtwZW5ueSAAAADZU-C1BQTw6ghU2A09r-wtWZZdphpzWlmsvB3i3VjBQwMAAAAAQAAAADZmNTJjZTBkMWRmYzJmNzNlY2M4ZjE2MmFkODE1ZWZjMmM5NzY2YWI3NmIxYTQ4YzlhNjc4ZDhjZDc5ZGQ0MDIAKwAAAFRvWXViX1ZoeldHdWVEWVVwODBnVmVWTnZiVGdoaDA4dU9kVUJtMDZkcFkCAABAe6XwY4GWCgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIAAAAVFJBTlNGRVIJAAAAa3N3YXAueHl6IAAAAP3AV3e1ornnygmVlZcEYY61dPGffrku_zZpklQUCx75AwAAAABAAAAANmY1MmNlMGQxZGZjMmY3M2VjYzhmMTYyYWQ4MTVlZmMyYzk3NjZhYjc2YjFhNDhjOWE2NzhkOGNkNzlkZDQwMgArAAAAVG9ZdWJfVmh6V0d1ZURZVXA4MGdWZVZOdmJUZ2hoMDh1T2RVQm0wNmRwWQKAZ5fVFxAj49sAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAABNSU5UDAAAAGtzd2FwLnRva2VucyAAAAB6vJFqfTyW0fbYYSu1VSkKPDE8a-VkGeN67sH_V9xlJwMAAAAAFgAAAGtzd2FwLmtwZW5ueTprc3dhcC54eXoAQAAAADZmNTJjZTBkMWRmYzJmNzNlY2M4ZjE2MmFkODE1ZWZjMmM5NzY2YWI3NmIxYTQ4YzlhNjc4ZDhjZDc5ZGQ0MDICgOV-ibaj994DAwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGAAAAVVBEQVRFDgAAAGtzd2FwLmV4Y2hhbmdlIAAAACvNLqkjDRI58v4xbqbQJN-YFuqwTim7Mq2x9LUm_ZJFAwAAAAAWAAAAa3N3YXAua3Blbm55Omtzd2FwLnh5egJw0jUOpI8jq0lWwksAAAAAAAAAAAAAAAAAAAAAAAAAAAKgAuLs2Q3nkQNZJQYAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+          },
+          "algorithm": "Keccak_256",
+          "object": "AAAAAAAAAAAAAAAA",
+          "rootType": "blockEvents"
+        }
+
+        proofSubjHex = base64UrlToStrictHex(subject["input"]);
+        proofObjHex = base64UrlToStrictHex(object);
+
+        expectedReqKey = base64UrlToStrictHex("QiX2nIzoq21HoA7Hiq2Rjkx5Nl7jD-l4nUGOjsz8aPA");
+        expectedRoot = base64UrlToStrictHex("YjoxLRFXZcxOPRBX3cbDgvYiTriWSzfU4cxvtKDbjek");
+
+        // Validates proof subject
+        // IMPORTANT: This causes an out of gas error when running `truffle test`
+        //actualEventArr1 = await tester.test_parseEventsArray_take_ith(proofSubjHex, 0, 0, {from: other});
+
+        // Performs inclusion proof
+        actualRoot = await tester.test_runMerkleProofKeccak256(
+              proofSubjHex,   // subject in hex
+              0, // proof path step count
+              [], // proof path hashes
+              [], // proof path sides (adds path proof to right)
+              {from: creator});
+
+    console.log("Validate subject structure");
+    assert_(actualRoot, expectedRoot)
+
+
   });
 
 });
