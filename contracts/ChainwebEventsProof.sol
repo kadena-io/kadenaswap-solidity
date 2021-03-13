@@ -126,11 +126,13 @@ library ChainwebEventsProof {
   * @dev Parses a Chainweb event parameter of type ByteString.
   * @param b Bytes array containing the sub-array of bytes to return.
   * @param idx Start index of the sub-array of bytes.
+  * @param isTagged Boolean to indicate if sub-array contains the ByteString
+  *                 parameter tag (i.e. does the byte array start with `0x00`).
   *
   * The ByteString event parameter will have the following format:
   * |-- 1 byte (a) --||-- 4 bytes (b) --||-- n bytes (c) --|
   *
-  * (a): The first byte is `0x00`, the ByteString Param tag.
+  * (a): (Optional) The first byte is `0x00`, the ByteString Param tag.
   * (b): The next 4 bytes encodes the size (a little-endian integer) of the
   *      ByteString parameter in bytes.
   * (c): The rest `n` bytes encodes the actual parameter ByteString.
@@ -139,15 +141,16 @@ library ChainwebEventsProof {
   * @return parsed Just the parsed array of bytes.
   *
   */
-  function parseBytesParam(bytes memory b, uint256 idx) public pure
+  function parseBytesParam(bytes memory b, uint256 idx, bool isTagged) public pure
     returns (uint256, bytes memory){
       uint256 currIdx = idx;
 
-      uint256 bytesTag = readIntLE(b, idx, 1);
-      currIdx += 1;
-      /** TODO: better way to compare tag? **/
-      require(bytesTag == uint256(ParameterType.Bytes),
-              "parseBytesParam: expected 0x0 tag not found");
+      if (isTagged == true) {
+        uint256 bytesTag = readIntLE(b, idx, 1);
+        currIdx += 1;
+        require(bytesTag == uint256(ParameterType.Bytes),
+                "parseBytesParam: expected 0x0 tag not found");
+      }
 
       uint256 numOfBytes = readIntLE(b, currIdx, 4);
       currIdx += 4;
@@ -168,7 +171,7 @@ library ChainwebEventsProof {
   * The Integer event parameter will have the following format:
   * |-- 1 byte (a) --||-- 32 bytes (b) --|
   *
-  * (a): The first byte is `0x01`, the Integer Param tag.
+  * (a): (Optional) The first byte is `0x01`, the Integer Param tag.
   * (b): The next 4 bytes encodes the size `n` (a little-endian integer)
   *      in number of bytes of the ByteString parameter.
   * (c): The next 32 bytes encodes the bytes sub-array representing
@@ -234,7 +237,7 @@ library ChainwebEventsProof {
         uint256 paramEndIdx;
         bytes memory parsed;
         // `parseBytesParam` expects the tag byte
-        (paramEndIdx, parsed) = parseBytesParam(b, currIdx);
+        (paramEndIdx, parsed) = parseBytesParam(b, currIdx, true);
         currIdx = paramEndIdx;
         Parameter memory param = Parameter(ParameterType.Bytes, parsed);
         return (currIdx, param);
@@ -324,17 +327,17 @@ library ChainwebEventsProof {
 
       uint256 eventNameEndIdx;
       bytes memory eventName;
-      (eventNameEndIdx, eventName) = parseBytesParam(b, currIdx);
+      (eventNameEndIdx, eventName) = parseBytesParam(b, currIdx, false);
       currIdx = eventNameEndIdx;
 
       uint256 eventModuleEndIdx;
       bytes memory eventModule;
-      (eventModuleEndIdx, eventModule) = parseBytesParam(b, currIdx);
+      (eventModuleEndIdx, eventModule) = parseBytesParam(b, currIdx, false);
       currIdx = eventModuleEndIdx;
 
       uint256 moduleHashEndIdx;
       bytes memory eventModuleHash;
-      (moduleHashEndIdx, eventModuleHash) = parseBytesParam(b, currIdx);
+      (moduleHashEndIdx, eventModuleHash) = parseBytesParam(b, currIdx, false);
       currIdx = moduleHashEndIdx;
 
       uint256 paramArrEndIdx;
@@ -410,7 +413,7 @@ library ChainwebEventsProof {
 
       uint256 reqKeyEndIdx;
       bytes memory reqKey;
-      (reqKeyEndIdx, reqKey) = parseBytesParam(b, currIdx);
+      (reqKeyEndIdx, reqKey) = parseBytesParam(b, currIdx, false);
       currIdx = reqKeyEndIdx;
 
       Event[] memory events;

@@ -2,10 +2,6 @@
 
 pragma solidity ^0.6.0;
 
-// TODO:
-// Array,
-//
-
 import '@openzeppelin/contracts/math/SafeMath.sol';
 import "./ChainwebEventsProof.sol";
 
@@ -29,11 +25,11 @@ contract ChainwebProofTest {
       return v;
   }
 
-  function test_parseBytesParam(bytes memory b, uint256 idx) public pure
+  function test_parseBytesParam(bytes memory b, uint256 idx, bool isTagged) public pure
     returns (bytes memory){
       uint256 endIdx;
       bytes memory parsed;
-      (endIdx, parsed) = ChainwebEventsProof.parseBytesParam(b, idx);
+      (endIdx, parsed) = ChainwebEventsProof.parseBytesParam(b, idx, isTagged);
       return parsed;
   }
 

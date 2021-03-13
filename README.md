@@ -311,3 +311,125 @@ $ truffle run verify ChainwebEventsProof KadenaBridgeFactory --network ropsten -
 For more instructions on how to use the plugin, check out this article https://kalis.me/verify-truffle-smart-contracts-etherscan/.
 
 NOTE: The contracts deployed via `migrate` are the only ones that can be verified using this plugin (at least from what I've tried). So if your contract deploys another contract (as the case with the Bridge Factory contract that creates and deploys Kadena Bridge wallets), then the deployed contract needs to be verified another way.
+
+
+### Annexation
+To replicate some of the test examples in `test/ChainwebProofTest.js`, do the following
+in a `chainweb-node` Haskell REPL in `src/Chainweb/SPV/EventProof.hs`.
+```shell
+λ> :set -XOverloadedStrings
+λ> :set -XTypeApplications
+λ> import qualified Data.ByteString as B
+λ> import Chainweb.Utils
+λ> int256Hex (Int256 184683593771)
+"0x0000000000000000000000000000000000000000000000002b0000002b000000"
+λ> int256Hex (Int256 1846835937711111111111)
+"0x000000000000000000000000000000006400000000000000c7813960644cff1d"
+λ> int256Hex (Int256 1846835937711111111111111111111111)
+"0x00000000000000000000000000000000a63dc2580e5b0000c7711ce8fe864585"
+λ> runPut $ encodeInt256 (Int256 1846835937711111111111111111111111)
+"0x00000000000000000000000000000000a63dc2580e5b0000c7711ce8fe86
+Some flags have not been recognized: prompt2,
+*Chainweb.SPV.EventProof B Chainweb.Utils| *Chainweb.SPV.EventProof B Chainweb.Utils| *Chainweb.SPV.EventProof B Chainweb.Utils|
+<interactive>:31:64: error:
+    lexical error in string/character literal at enλ>
+λ>
+λ> runPut $ encodeInt256 (Int256 1846835937711111111111111111111111)
+"\SOH\199q\FS\232\254\134E\133\166=\194X\SO[\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL"
+λ> import qualified Data.ByteArray as BA
+λ> import qualified Data.Memory.Endian as BA
+λ> import qualified Data.ByteArray.Encoding as BA
+λ> BA.convertToBase @B.ByteString BA.Base16 $ runPut $ encodeInt256 (Int256 1846835937711111111111111111111111)
+BA.convertToBase @B.ByteString BA.Base16 $ runPut $ encodeInt256 (Int256 1846835937711111111111111111111111)
+  :: BA.ByteArray bout => bout
+λ> a = runPut $ encodeInt256 (Int256 1846835937711111111111111111111111)
+λ> BA.convertToBase @B.ByteString BA.Base16  a
+BA.convertToBase @B.ByteString BA.Base16  a
+  :: BA.ByteArray bout => bout
+λ> show a
+"\"\\SOH\\199q\\FS\\232\\254\\134E\\133\\166=\\194X\\SO[\\NUL\\NUL\\NUL\\NUL\\NUL\\NUL\\NUL\\NUL\\NUL\\NUL\\NUL\\NUL\\NUL\\NUL\\NUL\\NUL\\NUL\\NUL\""
+λ> int256Hex (Int256 1846835937711111111111111111111111)
+"0x00000000000000000000000000000000a63dc2580e5b0000c7711ce8fe864585"
+λ> import qualified Data.ByteString.Base16 as B16
+λ> (BA.convertToBase BA.Base16 a) :: B.ByteString
+"01c7711ce8fe864585a63dc2580e5b000000000000000000000000000000000000"
+λ> int256Hex (Int256 1846835937711111111111111111111111)
+"0x00000000000000000000000000000000a63dc2580e5b0000c7711ce8fe864585"
+λ> decodeB64UrlNoPaddingText "VlVm90jiVdlkQ9frX_XtVtYeTj5lTOlcVkj65jsjSUM"
+"VUf\247H\226U\217dC\215\235_\245\237V\214\RSN>eL\233\\VH\250\230;#IC"
+λ> vlv <- decodeB64UrlNoPaddingText "VlVm90jiVdlkQ9frX_XtVtYeTj5lTOlcVkj65jsjSUM"
+λ> vlv
+"VUf\247H\226U\217dC\215\235_\245\237V\214\RSN>eL\233\\VH\250\230;#IC"
+λ> BA.convertToBase @B.ByteString BA.Base16 $ runPut $ encodeBytes vlv
+BA.convertToBase @B.ByteString BA.Base16 $ runPut $ encodeBytes vlv
+  :: BA.ByteArray bout => bout
+λ> vlvEncoded = runPut $ encodeBytes vlv
+λ> vlvEncoded
+"\NUL \NUL\NUL\NULVUf\247H\226U\217dC\215\235_\245\237V\214\RSN>eL\233\\VH\250\230;#IC"
+λ> BA.convertToBase @B.ByteString BA.Base16 vlvEncoded
+BA.convertToBase @B.ByteString BA.Base16 vlvEncoded
+  :: BA.ByteArray bout => bout
+λ> (BA.convertToBase BA.Base16 vlvEncoded)
+(BA.convertToBase BA.Base16 vlvEncoded)
+  :: BA.ByteArray bout => bout
+λ> (BA.convertToBase BA.Base16 vlvEncoded) :: B.ByteString
+"0020000000565566f748e255d96443d7eb5ff5ed56d61e4e3e654ce95c5648fae63b234943"
+λ> (BA.convertToBase BA.Base16 vlv) :: B.ByteString
+"565566f748e255d96443d7eb5ff5ed56d61e4e3e654ce95c5648fae63b234943"
+λ> import Pact.Types.PactValue
+λ> import Pact.Types.Literal
+
+<no location info>: error:
+    Could not find module ‘Pact.Types.Literal’
+    Perhaps you meant
+      Pact.Types.Logger (from pact-3.7)
+      Pact.Types.Perf (from pact-3.7)
+      Pact.Types.SQLite (from pact-3.7)
+λ> import Pact.Types.Term
+λ> pv1 = PLiteral $ LString "hello"
+λ> pv2 = PLiteral $ LInteger 7481743812763961247612973461273
+λ> pvsArrEncoded = runPut $ encodeArray [pv1, pv2] encodeParam
+λ> (BA.convertToBase BA.Base16 pvsArrEncoded) :: B.ByteString
+"02000000000500000068656c6c6f0119af056a34fcf2ee146ed16e5e00000000000000000000000000000000000000"
+λ> import Pact.Types.Runtime
+λ> e1 = PactEvent "someEventName" [pv1, pv2] (ModuleName undefined (Just $ NamespaceName "user")) (ModuleHash undefined)
+λ> e1 = PactEvent "someEventName" [pv1, pv2] (ModuleName "someModuleName" (Just $ NamespaceName "user")) (ModuleHash undefined)
+
+<interactive>:91:1-2: warning: [-Wname-shadowing]
+    This binding for ‘e1’ shadows the existing binding
+      defined at <interactive>:90:1
+λ> PactEvent "someEventName" [pv1, pv2] (ModuleName "someModuleName" (Just $ NamespaceName "user")) (ModuleHash $ pactHash "someModuleHash")
+PactEvent {_eventName = "someEventName", _eventParams = [PLiteral (LString {_lString = "hello"}),PLiteral (LInteger {_lInteger = 7481743812763961247612973461273})], _eventModule = ModuleName {_mnName = "someModuleName", _mnNamespace = Just (NamespaceName "user")}, _eventModuleHash = ModuleHash {_mhHash = "aAWxuOBHB3xfBMCqeFaO4Y74qHqdTGoMtWghrni3mIQ"}}
+λ> e1 = PactEvent "someEventName" [pv1, pv2] (ModuleName "someModuleName" (Just $ NamespaceName "user")) (ModuleHash $ pactHash "someModuleHash")
+
+<interactive>:93:1-2: warning: [-Wname-shadowing]
+    This binding for ‘e1’ shadows the existing binding
+      defined at <interactive>:91:1
+λ> e1Encoded = runPut $ encodePactEvent e1
+λ> (BA.convertToBase BA.Base16 e1Encoded) :: B.ByteString
+"000d000000736f6d654576656e744e616d650013000000757365722e736f6d654d6f64756c654e616d6500200000006805b1b8e047077c5f04c0aa78568ee18ef8a87a9d4c6a0cb56821ae78b7988402000000000500000068656c6c6f0119af056a34fcf2ee146ed16e5e00000000000000000000000000000000000000"
+λ> e2 = PactEvent "someOtherEventName" [pv1, pv2] (ModuleName "someOtherModuleName" Nothing) (ModuleHash $ pactHash "someOtherModuleHash")
+λ> pv3 = PLiteral $ LString "world"
+λ> pv4 = PLiteral $ LString "wide"
+λ> e2 = PactEvent "someOtherEventName" [pv3, pv4] (ModuleName "someOtherModuleName" Nothing) (ModuleHash $ pactHash "someOtherModuleHash")
+
+<interactive>:100:1-2: warning: [-Wname-shadowing]
+    This binding for ‘e2’ shadows the existing binding
+      defined at <interactive>:97:1
+λ> eventsEncoded = runPut $ encodeArray [e1, e2] encodePactEvent
+λ> (BA.convertToBase BA.Base16 eventsEncoded) :: B.ByteString
+"02000000000d000000736f6d654576656e744e616d650013000000757365722e736f6d654d6f64756c654e616d6500200000006805b1b8e047077c5f04c0aa78568ee18ef8a87a9d4c6a0cb56821ae78b7988402000000000500000068656c6c6f0119af056a34fcf2ee146ed16e5e000000000000000000000000000000000000000012000000736f6d654f746865724576656e744e616d650013000000736f6d654f746865724d6f64756c654e616d650020000000db302118cd981eebbdea5b1575ca2e03106f3910b546bc5834f15b93cc6d79a6020000000005000000776f726c64000400000077696465"
+λ> [e1, e2]
+[PactEvent {_eventName = "someEventName", _eventParams = [PLiteral (LString {_lString = "hello"}),PLiteral (LInteger {_lInteger = 7481743812763961247612973461273})], _eventModule = ModuleName {_mnName = "someModuleName", _mnNamespace = Just (NamespaceName "user")}, _eventModuleHash = ModuleHash {_mhHash = "aAWxuOBHB3xfBMCqeFaO4Y74qHqdTGoMtWghrni3mIQ"}},PactEvent {_eventName = "someOtherEventName", _eventParams = [PLiteral (LString {_lString = "world"}),PLiteral (LString {_lString = "wide"})], _eventModule = ModuleName {_mnName = "someOtherModuleName", _mnNamespace = Nothing}, _eventModuleHash = ModuleHash {_mhHash = "2zAhGM2YHuu96lsVdcouAxBvORC1RrxYNPFbk8xteaY"}}]
+λ> import qualified Data.Vector as V
+λ> eventsVector = V.fromList [e1, e2]
+λ> rk = RequestKey $ pactHash "someReqKey"
+λ> rk
+"AJx1gQgRWE-woSLq53FiIRPWcpuz2PeBYtybhmDgrtI"
+λ> outEvent = OutputEvents rk eventsVector
+λ> outEventEncoded = runPut $ encodeOutputEvents outEvent
+λ> (BA.convertToBase BA.Base16 outEventEncoded) :: B.ByteString
+"0020000000009c75810811584fb0a122eae771622113d6729bb3d8f78162dc9b8660e0aed202000000000d000000736f6d654576656e744e616d650013000000757365722e736f6d654d6f64756c654e616d6500200000006805b1b8e047077c5f04c0aa78568ee18ef8a87a9d4c6a0cb56821ae78b7988402000000000500000068656c6c6f0119af056a34fcf2ee146ed16e5e000000000000000000000000000000000000000012000000736f6d654f746865724576656e744e616d650013000000736f6d654f746865724d6f64756c654e616d650020000000db302118cd981eebbdea5b1575ca2e03106f3910b546bc5834f15b93cc6d79a6020000000005000000776f726c64000400000077696465"
+λ> outEvent
+OutputEvents {_outputEventsRequestKey = "AJx1gQgRWE-woSLq53FiIRPWcpuz2PeBYtybhmDgrtI", _outputEventsEvents = [PactEvent {_eventName = "someEventName", _eventParams = [PLiteral (LString {_lString = "hello"}),PLiteral (LInteger {_lInteger = 7481743812763961247612973461273})], _eventModule = ModuleName {_mnName = "someModuleName", _mnNamespace = Just (NamespaceName "user")}, _eventModuleHash = ModuleHash {_mhHash = "aAWxuOBHB3xfBMCqeFaO4Y74qHqdTGoMtWghrni3mIQ"}},PactEvent {_eventName = "someOtherEventName", _eventParams = [PLiteral (LString {_lString = "world"}),PLiteral (LString {_lString = "wide"})], _eventModule = ModuleName {_mnName = "someOtherModuleName", _mnNamespace = Nothing}, _eventModuleHash = ModuleHash {_mhHash = "2zAhGM2YHuu96lsVdcouAxBvORC1RrxYNPFbk8xteaY"}}]}
+```
